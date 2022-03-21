@@ -11,7 +11,17 @@
 				"navigationBarTitleText": "登录"
 			}
 		},
-		
+		{
+			"path": "pages/bleConnect/bleConnect",
+			"style": {
+				"navigationBarTitleText": "蓝牙连接"
+			}
+		}, {
+			"path": "pages/sendCommand/sendCommand",
+			"style": {
+				"navigationBarTitleText": "发送测试"
+			}
+		},
 		{
 			"path": "pages/component/setting",
 			"style": {}

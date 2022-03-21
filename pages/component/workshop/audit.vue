@@ -321,7 +321,7 @@
 												.catch(err => {
 													uni.showToast({
 														icon: 'none',
-														title: err.msg
+														title: err.message
 													});
 												});
 										}
@@ -329,7 +329,7 @@
 									.catch(err => {
 										uni.showToast({
 											icon: 'none',
-											title: err.msg
+											title: err.message
 										});
 										that.isClick = false;
 									});

@@ -410,7 +410,7 @@
 									.catch(err => {
 										uni.showToast({
 											icon: 'none',
-											title: err.msg
+											title: err.message
 										});
 										me.isClick = false;
 									});

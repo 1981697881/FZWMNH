@@ -20,9 +20,10 @@
 				<view class="action">
 					<text>产品编码:{{form.FItemNumber}}</text>
 				</view>
-				
-			</view><view class="cu-bar bg-white solid-bottom flex-wrap" style="height: auto;">
-				
+
+			</view>
+			<view class="cu-bar bg-white solid-bottom flex-wrap" style="height: auto;">
+
 				<view class="action">
 					<text>产品名称:{{form.FItemName}}</text>
 				</view>
@@ -93,14 +94,14 @@
 		</view> -->
 			<view v-for="(item,index) in cuIList" :key="index">
 				<view class="cu-list menu-avatar">
-					<view class="cu-item" style="width: 100%;margin-top: 2px;padding:15rpx 0 15rpx 0;height: auto;"
-						:class="modalName=='move-box-'+ index?'move-cur':''" @touchstart="ListTouchStart"
-						@touchmove="ListTouchMove" @touchend="ListTouchEnd" :data-target="'move-box-' + index">
+					<view class="bg-white" style="width: 100%;margin-top: 2px;padding:15rpx 0 15rpx 0;height: auto;"
+						 :data-target="'move-box-' + index">
 						<view style="clear: both;width: 100%;" class="grid text-center col-2">
-								<view>
-									<ld-select :list="shiftList" list-key="FName" value-key="FNumber" placeholder="班次" clearable
-										v-model="item.FClassNumber" @change="shiftChange($event, item)"></ld-select>
-								</view>
+							<view>
+								<ld-select :list="shiftList" list-key="FName" value-key="FNumber" placeholder="班次"
+									clearable v-model="item.FClassNumber" @change="shiftChange($event, item)">
+								</ld-select>
+							</view>
 							<view>
 								<view style="float: left;line-height: 60upx;">派工量:</view>
 								<input name="input" type="number" style="border-bottom: 1px solid;"
@@ -112,21 +113,25 @@
 									<text class="cuIcon-people">
 									</text>操作人:{{item.userName}}</button>
 							</view>
+							<view class="padding-top">
+								<button class="cu-btn sm round shadow bg-red" @tap="del(index,item)">删除</button>
+							</view>
 						</view>
-						<view class="move">
+						<!-- <view class="move">
 							<view class="bg-red" @tap="del(index,item)">删除</view>
-						</view>
+						</view> -->
 					</view>
 				</view>
 			</view>
 			<view class="cu-bar tabbar shadow foot">
 				<view class="box text-center">
-					<button :disabled="isClick" class="cu-btn bg-green shadow-blur round lg"
-						style="width: 40%;" @tap="$manyCk(saveData)">提交</button>
+					<button :disabled="isClick" class="cu-btn bg-green shadow-blur round lg" style="width: 40%;"
+						@tap="$manyCk(saveData)">提交</button>
 					<!-- <button class="cu-btn bg-blue shadow-blur round lg" style="width: 40%;" @tap="$manyCk(clearList)">清空</button> -->
 				</view>
 			</view>
 		</scroll-view>
+		
 	</view>
 </template>
 <script>
@@ -138,6 +143,12 @@
 	import workshop from '@/api/workshop';
 	import service from '@/service.js';
 	import loading from '@/components/loading';
+	import {
+		mapState
+	} from 'vuex';
+	var tsc = require("@/util/ble/tsc.js");
+	var esc = require("@/util/ble/esc.js");
+	var encode = require("@/util/ble/encoding.js");
 	export default {
 		components: {
 			ruiDatePicker,
@@ -161,7 +172,7 @@
 				gridCol: 3,
 				formatName: 'FName',
 				form: {
-					
+
 				},
 				popupForm: {},
 				skin: false,
@@ -184,8 +195,27 @@
 				cuIList: [],
 				startDate: null,
 				endDate: null,
+
+				sendContent: "",
+				looptime: 0,
+				currentTime: 1,
+				lastData: 0,
+				oneTimeData: 0,
+				returnResult: "",
+				canvasWidth: 180,
+				canvasHeight: 180,
+				imageSrc: '../../static/img/abc_ic_star_black_16dp.png',
+				buffSize: [],
+				buffIndex: 0,
+				printNum: [],
+				printNumIndex: 0,
+				printerNum: 1,
+				currentPrint: 1,
+				isReceiptSend: false,
+				isLabelSend: false
 			};
 		},
+		computed: mapState(['sysinfo', 'Bluetooth']),
 		onLoad: function(option) {
 			let me = this
 			if (JSON.stringify(option) != "{}") {
@@ -194,30 +224,20 @@
 				me.form = obj;
 				me.startDate = obj.startDate
 				me.endDate = obj.endDate
-				/* me.form.kingDeeNo = option.kingDeeNo
-				me.form.productWorkDetailId = option.productWorkDetailId
-				me.form.lotNo = option.lotNo
-				me.form.model = option.model
-				me.form.planNum = option.planNum
-				me.form.processCard = option.processCard
-				me.form.productName = option.productName
-				me.form.productNumber = option.productNumber
-				me.form.workNo = option.workNo
-				me.startDate = option.startDate
-				me.endDate = option.endDate
-				workshop.formatByProductWork({
-					productWorkDetailId: option.productWorkDetailId
-				}).then(res => {
-					if (res.success) {
-						me.processList = res.data
-					}
-				}).catch(err => {
-					uni.showToast({
-						icon: 'none',
-						title: err.msg,
-					});
-				})*/
-			} 
+
+			}
+		},
+		onUnload() {
+			let that = this;
+			let {
+				BLEInformation
+			} = that.Bluetooth;
+			uni.closeBLEConnection({
+				deviceId: BLEInformation.deviceId,
+				success: function(res) {
+					console.log("关闭蓝牙成功")
+				},
+			})
 		},
 		onReady: function() {
 			var me = this
@@ -229,7 +249,7 @@
 					uni.getSystemInfo({
 						success: function(res) { // res - 各种参数
 							let info = uni.createSelectorQuery().select(".getheight");
-						 let customHead = uni.createSelectorQuery().select(".customHead");
+							let customHead = uni.createSelectorQuery().select(".customHead");
 							var infoHeight = 0;
 							var headHeight = 0;
 							info.boundingClientRect(function(data) { //data - 各种参数
@@ -248,7 +268,44 @@
 
 				}
 			}
+			let list = []
+			let numList = []
+			let j = 0
+			for (let i = 20; i < 200; i += 10) {
+				list[j] = i;
+				j++
+			}
+			for (let i = 1; i < 10; i++) {
+			 numList[i - 1] = i
+			}
+			this.buffSize = list;
+			this.oneTimeData = list[0];
+			this.printNum = numList;
+			this.printerNum = numList[0];
 
+		},
+		onShow(){
+			let that = this;
+			let width;
+			let height;
+			uni.getImageInfo({
+			  src: that.imageSrc,
+			  success(res) {
+				console.log(res.width)
+				console.log(res.height)
+				width = res.width
+				height = res.height
+				that.canvasWidth = res.width;
+				that.canvasHeight = res.height;
+			  }
+			})
+			const ctx = uni.createCanvasContext("edit_area_canvas", this);
+			// if (app.globalData.platform == "android") {
+			//   ctx.translate(width, height)
+			//   ctx.rotate(180 * Math.PI / 180)
+			// }
+			ctx.drawImage(this.imageSrc, 0, 0, width, height);
+			ctx.draw();
 		},
 		methods: {
 			sumCount(val, item) {
@@ -258,7 +315,6 @@
 				for (var i = 0; i < list.length; i++) {
 					count += Number(list[i].dispatchNum)
 				}
-				console.log(count)
 				this.form.bNum = count
 			},
 			cityClick(item) {
@@ -298,7 +354,7 @@
 				});
 				basic.getShiftList({}).then(res => {
 					if (res.success) {
-						res.data.forEach((item)=>{
+						res.data.forEach((item) => {
 							item.FNumber = item.FNumber.toString();
 						})
 						me.shiftList = res.data
@@ -330,7 +386,9 @@
 				let me = this
 				let array = []
 				basic
-					.getBillNo({ TranType: 1002534 })
+					.getBillNo({
+						TranType: 1002534
+					})
 					.then(reso => {
 						if (reso.success) {
 							for (let i in list) {
@@ -349,19 +407,19 @@
 								obj.fsendqty = list[i].FSendQty
 								obj.fbillno = reso.data
 								obj.fentryid = 0
-								obj.workdate = this.form.workDate
-								obj.productworkdetailid = this.form.productWorkDetailId
+								obj.workdate = me.form.workDate
+								obj.productworkdetailid = me.form.productWorkDetailId
 								array.push(obj)
 							}
 							if (result.length > 0) {
-								this.isClick = false
+								me.isClick = false
 								return uni.showToast({
 									icon: 'none',
 									title: '派工数，操作人，班次输入有误，请检查',
 								});
 							}
 							if (array.length <= 0) {
-								this.isClick = false
+								me.isClick = false
 								return uni.showToast({
 									icon: 'none',
 									title: '无派工数据',
@@ -370,47 +428,79 @@
 							portData.ftrantype = "1002534"
 							portData.foper = "N"
 							portData.finterid = 0
-							portData.fdate = this.form.FDate
+							portData.fdate = me.form.FDate
 							portData.fbillno = reso.data
-							portData.fplanbillno = this.form.FBillNo
-							portData.ficmobillno = this.form.FProduceTaskNo
-							portData.fplanentryid = this.form.FEntryID
-							portData.fplanstartdate = this.form.FPlanStartDate
-							portData.fplanenddate = this.form.FPlanEndDate
-							portData.fitemnumber = this.form.FItemNumber
-							portData.forderno = this.form.FOrderNo
-							portData.fwbnumber = this.form.FAlternateNumber
+							portData.fplanbillno = me.form.FBillNo
+							portData.ficmobillno = me.form.FProduceTaskNo
+							portData.fplanentryid = me.form.FEntryID
+							portData.fplanstartdate = me.form.FPlanStartDate
+							portData.fplanenddate = me.form.FPlanEndDate
+							portData.fitemnumber = me.form.FItemNumber
+							portData.forderno = me.form.FOrderNo
+							portData.fwbnumber = me.form.FAlternateNumber
 							portData.finterid = 0
 							portData.repEntry = array
 							workshop.productWorkInsert(portData).then(res => {
 								if (res.success) {
-									this.cuIList = []
 									uni.showToast({
 										icon: 'success',
 										title: res.msg,
 									});
-									this.form.bNum = 0
-									this.initMain()
-									if (this.isOrder) {
-										setTimeout(function() {
-											uni.$emit("handleBack", {
-												startDate: me.startDate,
-												endDate: me.endDate
-											});
-											uni.navigateBack({
-												url: '../workshop/dispatching'
-											});
-										}, 1000)
+									me.form.bNum = 0
+									me.initMain()
+									if (me.isOrder) {
+										uni.showModal({
+											title: "提示",
+											content: "是否立即打印",
+											showCancel: true,
+											cancelText: '取消',
+											confirmText: '确定',
+											success: res => {
+												console.log(res.confirm)
+												if (res.confirm) {
+													let {
+														BLEInformation
+													} = me.Bluetooth;
+													me.form.fdate = me.form.FDate
+													me.form.fbillno = reso.data
+													me.form.entry = me.cuIList
+													if (BLEInformation.deviceId == "") {
+														// 用户点击确定
+														setTimeout(function() {
+															uni.redirectTo({
+																url: '/pages/bleConnect/bleConnect?obj=' +
+																	encodeURIComponent(
+																		JSON
+																		.stringify(
+																			me.form))
+															});
+														}, 1000)
+													} else {
+														me.bindViewTap();
+													}
+													me.cuIList = []
+												} else {
+													me.cuIList = []
+													setTimeout(function() {
+														uni.navigateBack({
+															url: '../workshop/dispatching'
+														});
+													}, 1000)
+													// 否则点击了取消  
+												}
+											}
+										})
+
 									}
 								}
 							}).catch(err => {
 								uni.showToast({
 									icon: 'none',
-									title: err.msg,
+									title: err.message,
 								});
 								this.isClick = false
 							})
-							
+
 						}
 					})
 					.catch(err => {
@@ -463,7 +553,8 @@
 			},
 			deptChange(val) {
 				this.form.fdeptID = val
-			},shiftChange(val,item) {
+			},
+			shiftChange(val, item) {
 				item.FClassNumber = val
 			},
 			processChange(val) {
@@ -501,7 +592,256 @@
 					this.modalName = null
 				}
 				this.listTouchDirection = null
-			}
+			},
+			//绑定蓝牙
+			bindViewTap(e) {
+				let that = this;
+				let {
+					BLEInformation
+				} = that.Bluetooth;
+				let
+					title = BLEInformation.deviceId;
+				that.serviceId = 0;
+				that.writeCharacter = false;
+				that.readCharacter = false;
+				that.notifyCharacter = false;
+				uni.showLoading({
+					title: '正在连接',
+				})
+				console.log('deviceId:', title)
+				// uni.createBLEConnection
+				plus.bluetooth.createBLEConnection({
+					deviceId: title,
+					success(res) {
+						console.log('createBLEConnection success:', res)
+						BLEInformation.deviceId = title;
+						uni.hideLoading()
+						that.getSeviceId()
+					},
+					fail(e) {
+						console.log('createBLEConnection error:', e)
+						that.errorCodeTip(e.errCode);
+						uni.hideLoading()
+					}
+				})
+			},
+			//获取蓝牙设备所有服务(service)。
+			getSeviceId() {
+				let that = this;
+				let {
+					BLEInformation
+				} = that.Bluetooth;
+				console.log('BLEInformation.deviceId:', BLEInformation.deviceId)
+				// uni.getBLEDeviceServices
+				let t = setTimeout(() => {
+					plus.bluetooth.getBLEDeviceServices({
+						deviceId: BLEInformation.deviceId,
+						success(res) {
+							console.log('getBLEDeviceServices success:', res)
+							that.services = res.services;
+							that.getCharacteristics()
+						},
+						fail: function(e) {
+							that.errorCodeTip(e.code);
+							console.log('getBLEDeviceServices fail:', e)
+						}
+					})
+					clearTimeout(t);
+				}, 1500)
+			},
+			getCharacteristics() {
+				var that = this
+				let {
+					services: list,
+					serviceId: num,
+					writeCharacter: write,
+					readCharacter: read,
+					notifyCharacter: notify
+				} = that;
+				let {
+					BLEInformation
+				} = that.Bluetooth;
+				// uni.getBLEDeviceCharacteristics
+				plus.bluetooth.getBLEDeviceCharacteristics({
+					deviceId: BLEInformation.deviceId,
+					serviceId: list[num].uuid,
+					success(res) {
+						console.log(res)
+						for (var i = 0; i < res.characteristics.length; ++i) {
+							var properties = res.characteristics[i].properties
+							var item = res.characteristics[i].uuid
+							if (!notify) {
+								if (properties.notify) {
+									BLEInformation.notifyCharaterId = item;
+									BLEInformation.notifyServiceId = list[num].uuid;
+									that.$store.commit('BLEInformationSet', BLEInformation);
+									notify = true
+								}
+							}
+							if (!write) {
+								if (properties.write) {
+									BLEInformation.writeCharaterId = item;
+									BLEInformation.writeServiceId = list[num].uuid;
+									that.$store.commit('BLEInformationSet', BLEInformation);
+									write = true
+								}
+							}
+							if (!read) {
+								if (properties.read) {
+									BLEInformation.readCharaterId = item;
+									BLEInformation.readServiceId = list[num].uuid;
+									that.$store.commit('BLEInformationSet', BLEInformation);
+									read = true
+								}
+							}
+						}
+						if (!write || !notify || !read) {
+							num++
+							that.writeCharacter = write;
+							that.readCharacter = read;
+							that.notifyCharacter = notify;
+							that.serviceId = num;
+							if (num == list.length) {
+								uni.showModal({
+									title: '提示',
+									content: '找不到该读写的特征值',
+								})
+							} else {
+								that.getCharacteristics()
+							}
+						} else {
+							that.openControl()
+						}
+					},
+					fail: function(e) {
+						console.log("getBLEDeviceCharacteristics fail：", e);
+						that.errorCodeTip(e.errCode);
+					}
+				})
+			},
+			openControl: function() {
+				let that = this;
+				for(let i =0;i<that.form.entry.length;i++){
+					if(i == 0){
+						that.labelTest(that.form.entry[i]);
+					}else{
+						(function (t, data) {   // 注意这里是形参
+						        setTimeout(function () {
+									that.labelTest(that.form.entry[i]);
+						        }, 3000 * t);	// 还是每秒执行一次，不是累加的
+						    })(i, '')   // 
+					}
+					
+				}
+				/* uni.navigateTo({
+					url: '/pages/sendCommand/sendCommand',
+				}) */
+			},
+			//标签打印
+			labelTest(item) {
+				console.log("打印")
+				console.log(item)
+				let that = this;
+				let canvasWidth = that.canvasWidth
+				let canvasHeight = that.canvasHeight
+				let command = tsc.jpPrinter.createNew()
+				command.setSize(40, 28)
+				command.setGap(0)
+				command.setCls()
+				command.setQR(180, 10, "L", 5, "A", that.form.fbillno)
+				command.setText(1, 10, "TSS24.BF2", 1, 1, that.form.FAlternateName)
+				command.setText(1, 40, "TSS24.BF2", 1, 1, item.FClassNumber)
+				command.setText(1, 70, "TSS24.BF2", 1, 1, item.userName)
+				command.setText(1, 120, "TSS24.BF2", 1, 1, that.form.fdate)
+				let num = 150;
+				for(var i = 0;i<Math.ceil(that.form.FItemName.length/19);i++){
+					command.setText(1, num+(i*30), "TSS24.BF2", 1, 1, that.form.FItemName.slice(i*19,i*19+19))
+				};
+				command.setPagePrint();
+				that.isLabelSend = true;
+				that.prepareSend(command.getData())
+			},
+			//准备发送，根据每次发送字节数来处理分包数量
+			prepareSend(buff) {
+				console.log(buff);
+				let that = this
+				let time = that.oneTimeData
+				let looptime = parseInt(buff.length / time);
+				let lastData = parseInt(buff.length % time);
+				console.log(looptime + "---" + lastData)
+				this.looptime = looptime + 1;
+				this.lastData = lastData;
+				this.currentTime = 1;
+				that.Send(buff)
+			},
+			//分包发送
+			Send(buff) {
+				let that = this
+				let {
+					currentTime,
+					looptime: loopTime,
+					lastData,
+					oneTimeData: onTimeData,
+					printerNum: printNum,
+					currentPrint
+				} = that;
+				let buf;
+				let dataView;
+				if (currentTime < loopTime) {
+					buf = new ArrayBuffer(onTimeData)
+					dataView = new DataView(buf)
+					for (var i = 0; i < onTimeData; ++i) {
+						dataView.setUint8(i, buff[(currentTime - 1) * onTimeData + i])
+					}
+				} else {
+					buf = new ArrayBuffer(lastData)
+					dataView = new DataView(buf)
+					for (var i = 0; i < lastData; ++i) {
+						dataView.setUint8(i, buff[(currentTime - 1) * onTimeData + i])
+					}
+				}
+				console.log("第" + currentTime + "次发送数据大小为：" + buf.byteLength)
+				let {
+					BLEInformation
+				} = that.Bluetooth;
+
+				plus.bluetooth.writeBLECharacteristicValue({
+					deviceId: BLEInformation.deviceId,
+					serviceId: BLEInformation.writeServiceId,
+					characteristicId: BLEInformation.writeCharaterId,
+					value: buf,
+					success: function(res) {
+						console.log(res)
+					},
+					fail: function(e) {
+						console.log(e)
+					},
+					complete: function() {
+						currentTime++
+						if (currentTime <= loopTime) {
+							that.currentTime = currentTime;
+							that.Send(buff)
+						} else {
+							uni.showToast({
+								title: '已打印第' + currentPrint + '张',
+							})
+							if (currentPrint == printNum) {
+								that.looptime = 0;
+								that.lastData = 0;
+								that.currentTime = 1;
+								that.isReceiptSend = false;
+								that.isLabelSend = false;
+								that.currentPrint = 1;
+							} else {
+								currentPrint++;
+								that.currentPrint = currentPrint;
+								that.currentTime = 1;
+								that.Send(buff)
+							}
+						}
+					}
+				})
+			},
 		}
 	}
 </script>

@@ -41,7 +41,7 @@
 							<view class="text-grey">任务单号:{{item.FProduceTaskNo}}</view>
 							<view class="text-grey">生产数量:{{item.FWBSentNum}}</view>
 							<view class="text-grey" style="width: 100%;">产品编码:{{item.FItemNumber}}</view>
-							<view class="text-grey" style="width: 100%;">产品名称:{{item.FItemName}}</view>
+							<view class="text-grey" style="width: 100%;">产品名称:{{item.FItemName}}</view> 
 							<view class="text-grey">规格型号:{{item.FModel}}</view>
 							<view class="text-grey">工序序号:{{item.FOrderNo}}</view>
 							<view class="text-grey">工序代码:{{item.FAlternateNumber}}</view>
