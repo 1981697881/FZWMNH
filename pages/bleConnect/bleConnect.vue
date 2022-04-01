@@ -421,18 +421,28 @@
 				let canvasWidth = that.canvasWidth
 				let canvasHeight = that.canvasHeight
 				let command = tsc.jpPrinter.createNew()
-				command.setSize(40, 28)
+				command.setSize(80, 60)
 				command.setGap(0)
 				command.setCls()
-				command.setQR(180, 10, "L", 5, "A", that.form.fbillno)
-				command.setText(1, 10, "TSS24.BF2", 1, 1, that.form.FAlternateName)
-				command.setText(1, 40, "TSS24.BF2", 1, 1, item.FClassNumber)
-				command.setText(1, 70, "TSS24.BF2", 1, 1, item.userName)
-				command.setText(1, 120, "TSS24.BF2", 1, 1, that.form.fdate)
-				let num = 150;
-				for (var i = 0; i < Math.ceil(that.form.FItemName.length / 19); i++) {
-					command.setText(1, num + (i * 30), "TSS24.BF2", 1, 1, that.form.FItemName.slice(i * 19, i * 19 + 19));
+				command.setQR(420, 300, "L", 6, "A", that.form.fbillno)
+				/* command.setBarCode(180, 350, "39", 96, 1, 2, 2, that.form.fbillno) */
+				command.setText(1, 20, "TSS24.BF2", 1, 1, '生产任务单:'+that.form.FProduceTaskNo)
+				command.setText(1, 60, "TSS24.BF2", 1, 1, '物料编码:'+that.form.FItemNumber)
+				let num = 100;
+				that.form.FItemName = '物料名称:'+that.form.FItemName
+				for (var i = 0; i < Math.ceil(that.form.FItemName.length / 31); i++) {
+					num = num + (i * 40)
+					command.setText(1, num, "TSS24.BF2", 1, 1, that.form.FItemName.slice(i * 31, i * 31 + 31));
 				};
+				num = num+40
+				that.form.fprocessnote = '加工说明:'+that.form.fprocessnote
+				for (var i = 0; i < Math.ceil(that.form.fprocessnote.length / 31); i++) {
+					num = num + (i * 40)
+					command.setText(1, num, "TSS24.BF2", 1, 1, that.form.fprocessnote.slice(i * 31, i * 31 + 31));
+				};
+				command.setText(1, num+40, "TSS24.BF2", 1, 1, '员工:'+item.userName)
+				command.setText(1, num+80, "TSS24.BF2", 1, 1, '数量:'+item.FSendQty)
+				command.setText(1, num+120, "TSS24.BF2", 1, 1, '工序名称:'+that.form.FAlternateName)
 				command.setPagePrint()
 				that.isLabelSend = true;
 				that.prepareSend(command.getData())

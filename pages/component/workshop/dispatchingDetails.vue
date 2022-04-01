@@ -12,37 +12,56 @@
 				<view class="action">
 					<text>单号:{{form.FBillNo}}</text>
 				</view>
+			</view>
+			<view class="cu-bar bg-white solid-bottom" style="height: auto;">
 				<view class="action">
-					<text>生产数量:{{form.FWBSentNum}}</text>
+					<text>计划数量:{{form.FProcedurePlanNumber}}</text>
+				</view>
+				<view class="action">
+					<text>生产数量:{{form.FProduceNumber}}</text>
+				</view>
+			</view>
+			<view class="cu-bar bg-white solid-bottom" style="height: auto;">
+				<view class="action">
+					<text>已派工数量:{{form.FWBSentNum}}</text>
+				</view>
+				<view class="action">
+					<text>未派工数量:{{form.FWBNuSentNum}}</text>
+				</view>
+			</view>
+			<view class="cu-bar bg-white solid-bottom flex-wrap" style="height: auto;">
+				<view class="action">
+					<text>产品名称:{{form.FItemName}}</text>
 				</view>
 			</view>
 			<view class="cu-bar bg-white solid-bottom flex-wrap" style="height: auto;">
 				<view class="action">
 					<text>产品编码:{{form.FItemNumber}}</text>
+				</view><view class="action">
+					<text>班组:{{form.FTeamName}}</text>
 				</view>
 
-			</view>
-			<view class="cu-bar bg-white solid-bottom flex-wrap" style="height: auto;">
-
-				<view class="action">
-					<text>产品名称:{{form.FItemName}}</text>
-				</view>
 			</view>
 			<view class="cu-bar bg-white solid-bottom" style="height: auto;">
 				<view class="action">
 					<text>规格型号:{{form.FModel}}</text>
 				</view>
 				<view class="action">
-					<text>工序序号:{{form.FOrderNo}}</text>
+					<text>工序名称:{{form.FAlternateName}}</text>
 				</view>
 			</view>
-
 			<view class="cu-bar bg-white solid-bottom" style="height: auto;">
 				<view class="action">
 					<text>计划开工日期:{{form.FPlanStartDate}}</text>
 				</view>
 				<view class="action">
 					<text>计划完工日期:{{form.FPlanFinishedDate}}</text>
+				</view>
+			</view>
+			<view class="cu-bar bg-white solid-bottom" style="height: 60upx;">
+				<view class="action">
+					<view class="title">加工说明:</view>
+					<input name="input" @input='sumRemark' style="font-size: 13px;text-align: left;" v-model="form.fprocessnote" />
 				</view>
 			</view>
 		</view>
@@ -95,25 +114,38 @@
 			<view v-for="(item,index) in cuIList" :key="index">
 				<view class="cu-list menu-avatar">
 					<view class="bg-white" style="width: 100%;margin-top: 2px;padding:15rpx 0 15rpx 0;height: auto;"
-						 :data-target="'move-box-' + index">
+						:data-target="'move-box-' + index">
 						<view style="clear: both;width: 100%;" class="grid text-center col-2">
-							<view>
+							<!-- <view>
+								<ld-select :list="deptList" list-key="FName" value-key="FNumber" placeholder="班组"
+									clearable v-model="item.FDeptID" @change="deptChange"></ld-select>
+							</view> -->
+							<!-- <view >
 								<ld-select :list="shiftList" list-key="FName" value-key="FNumber" placeholder="班次"
 									clearable v-model="item.FClassNumber" @change="shiftChange($event, item)">
 								</ld-select>
+							</view> -->
+							<!-- <view>
+								<picker @change="PickerChange($event, item)" :value="pickerVal" :range-key="'FName'" :range="shiftList">
+									<view class="picker">
+										<button class="cu-btn sm round bg-blue shadow" >
+										<text class="cuIcon-home">
+										</text>班次:{{item.FClassName}}</button>
+									</view>
+								</picker>
+							</view> -->
+							<view>
+								<button class="cu-btn sl round bg-green shadow" @tap="showModal(index, item)"
+									:disabled="isDis" data-target="Modal">
+									<text class="cuIcon-people">
+									</text>操作人:{{item.userName}}</button>
 							</view>
 							<view>
 								<view style="float: left;line-height: 60upx;">派工量:</view>
 								<input name="input" type="number" style="border-bottom: 1px solid;"
 									@input='sumCount($event, item)' v-model="item.FSendQty" />
 							</view>
-							<view class="padding-top">
-								<button class="cu-btn sm round bg-green shadow" @tap="showModal(index, item)"
-									:disabled="isDis" data-target="Modal">
-									<text class="cuIcon-people">
-									</text>操作人:{{item.userName}}</button>
-							</view>
-							<view class="padding-top">
+							<view style="width: 100%;">
 								<button class="cu-btn sm round shadow bg-red" @tap="del(index,item)">删除</button>
 							</view>
 						</view>
@@ -131,7 +163,7 @@
 				</view>
 			</view>
 		</scroll-view>
-		
+
 	</view>
 </template>
 <script>
@@ -195,7 +227,6 @@
 				cuIList: [],
 				startDate: null,
 				endDate: null,
-
 				sendContent: "",
 				looptime: 0,
 				currentTime: 1,
@@ -224,7 +255,8 @@
 				me.form = obj;
 				me.startDate = obj.startDate
 				me.endDate = obj.endDate
-
+				me.form.fprocessnote = me.form.FRemark
+				me.form.FWBNuSentNum = me.form.FProcedurePlanNumber-me.form.FWBSentNum
 			}
 		},
 		onUnload() {
@@ -259,7 +291,7 @@
 								headHeight = data.height
 							}).exec();
 							setTimeout(function() {
-								me.pageHeight = res.windowHeight - infoHeight - headHeight
+								me.pageHeight = res.windowHeight - infoHeight - headHeight -30
 							}, 1000);
 						}
 					});
@@ -276,7 +308,7 @@
 				j++
 			}
 			for (let i = 1; i < 10; i++) {
-			 numList[i - 1] = i
+				numList[i - 1] = i
 			}
 			this.buffSize = list;
 			this.oneTimeData = list[0];
@@ -284,20 +316,20 @@
 			this.printerNum = numList[0];
 
 		},
-		onShow(){
+		onShow() {
 			let that = this;
 			let width;
 			let height;
 			uni.getImageInfo({
-			  src: that.imageSrc,
-			  success(res) {
-				console.log(res.width)
-				console.log(res.height)
-				width = res.width
-				height = res.height
-				that.canvasWidth = res.width;
-				that.canvasHeight = res.height;
-			  }
+				src: that.imageSrc,
+				success(res) {
+					console.log(res.width)
+					console.log(res.height)
+					width = res.width
+					height = res.height
+					that.canvasWidth = res.width;
+					that.canvasHeight = res.height;
+				}
 			})
 			const ctx = uni.createCanvasContext("edit_area_canvas", this);
 			// if (app.globalData.platform == "android") {
@@ -309,13 +341,10 @@
 		},
 		methods: {
 			sumCount(val, item) {
-				var list = this.cuIList
-				this.$set(item, 'dispatchNum', val.detail.value);
-				var count = 0
-				for (var i = 0; i < list.length; i++) {
-					count += Number(list[i].dispatchNum)
-				}
-				this.form.bNum = count
+				this.$set(item, 'FSendQty', val.detail.value);
+			},
+			sumRemark(val) {
+				this.form.fprocessnote = val.detail.value;
 			},
 			cityClick(item) {
 				this.$set(this.popupForm, 'userName', item.FName);
@@ -358,6 +387,15 @@
 							item.FNumber = item.FNumber.toString();
 						})
 						me.shiftList = res.data
+						me.cuIList.push({
+							userId: '',
+							userName: '',
+							FSendQty: me.form.FWBNuSentNum,
+							FClassNumber: me.shiftList[0].FNumber,
+							FClassName: me.shiftList[0].FName,
+							FDeptID: '',
+						})
+						
 					}
 				}).catch(err => {
 					uni.showToast({
@@ -368,6 +406,7 @@
 				basic.getEmpList({}).then(res => {
 					if (res.success) {
 						me.empList = res.data
+						
 					}
 				}).catch(err => {
 					uni.showToast({
@@ -408,6 +447,7 @@
 								obj.fbillno = reso.data
 								obj.fentryid = 0
 								obj.workdate = me.form.workDate
+								obj.fprocessnote = me.form.fprocessnote
 								obj.productworkdetailid = me.form.productWorkDetailId
 								array.push(obj)
 							}
@@ -447,7 +487,6 @@
 										title: res.msg,
 									});
 									me.form.bNum = 0
-									me.initMain()
 									if (me.isOrder) {
 										uni.showModal({
 											title: "提示",
@@ -472,16 +511,19 @@
 																	encodeURIComponent(
 																		JSON
 																		.stringify(
-																			me.form))
+																			me.form
+																			))
 															});
 														}, 1000)
 													} else {
 														me.bindViewTap();
 													}
-													me.cuIList = []
 												} else {
-													me.cuIList = []
 													setTimeout(function() {
+														uni.$emit('handleBack', {
+															startDate: me.startDate,
+															endDate: me.endDate
+														});
 														uni.navigateBack({
 															url: '../workshop/dispatching'
 														});
@@ -490,7 +532,6 @@
 												}
 											}
 										})
-
 									}
 								}
 							}).catch(err => {
@@ -561,9 +602,13 @@
 				this.form.processID = val
 			},
 			PickerChange(e, item) {
+				this.$set(item,'FClassName', this.shiftList[e.detail.value].FName);
+				this.$set(item,'FClassNumber', this.shiftList[e.detail.value].FNumber);
+			},
+			/* PickerChange(e, item) {
 				this.$set(item, 'userName', this.empList[e.detail.value].FName);
 				this.$set(item, 'userId', this.empList[e.detail.value].FNumber);
-			},
+			}, */
 			bindChange(e) {
 				this.form.fdate = e
 			},
@@ -571,9 +616,13 @@
 				var that = this
 				that.cuIList.push({
 					userId: '',
-					dispatchNum: 0,
-					FClassNumber: '',
+					userName: '',
+					FSendQty: 0,
+					FClassNumber: that.shiftList[0].FNumber,
+					FClassName: that.shiftList[0].FName,
+					FDeptID: '',
 				})
+				that.$forceUpdate();
 			}, // ListTouch触摸开始
 			ListTouchStart(e) {
 				this.listTouchStart = e.touches[0].pageX
@@ -721,18 +770,26 @@
 			},
 			openControl: function() {
 				let that = this;
-				for(let i =0;i<that.form.entry.length;i++){
-					if(i == 0){
+				for (let i = 0; i < that.form.entry.length; i++) {
+					if (i == 0) {
 						that.labelTest(that.form.entry[i]);
-					}else{
-						(function (t, data) {   // 注意这里是形参
-						        setTimeout(function () {
-									that.labelTest(that.form.entry[i]);
-						        }, 3000 * t);	// 还是每秒执行一次，不是累加的
-						    })(i, '')   // 
+					} else {
+						(function(t, data) { // 注意这里是形参
+							setTimeout(function() {
+								that.labelTest(that.form.entry[i]);
+							}, 3000 * t); // 还是每秒执行一次，不是累加的
+						})(i, '') // 
 					}
-					
 				}
+				setTimeout(function() {
+					uni.$emit('handleBack', {
+						startDate: me.startDate,
+						endDate: me.endDate
+					});
+					uni.navigateBack({
+						url: '../workshop/dispatching'
+					});
+				}, 1000)
 				/* uni.navigateTo({
 					url: '/pages/sendCommand/sendCommand',
 				}) */
@@ -745,18 +802,28 @@
 				let canvasWidth = that.canvasWidth
 				let canvasHeight = that.canvasHeight
 				let command = tsc.jpPrinter.createNew()
-				command.setSize(40, 28)
+				command.setSize(80, 60)
 				command.setGap(0)
 				command.setCls()
-				command.setQR(180, 10, "L", 5, "A", that.form.fbillno)
-				command.setText(1, 10, "TSS24.BF2", 1, 1, that.form.FAlternateName)
-				command.setText(1, 40, "TSS24.BF2", 1, 1, item.FClassNumber)
-				command.setText(1, 70, "TSS24.BF2", 1, 1, item.userName)
-				command.setText(1, 120, "TSS24.BF2", 1, 1, that.form.fdate)
-				let num = 150;
-				for(var i = 0;i<Math.ceil(that.form.FItemName.length/19);i++){
-					command.setText(1, num+(i*30), "TSS24.BF2", 1, 1, that.form.FItemName.slice(i*19,i*19+19))
+				command.setQR(420, 300, "L", 6, "A", that.form.fbillno)
+				/* command.setBarCode(180, 350, "39", 96, 1, 2, 2, that.form.fbillno) */
+				command.setText(1, 20, "TSS24.BF2", 1, 1, '生产任务单:' + that.form.FProduceTaskNo)
+				command.setText(1, 60, "TSS24.BF2", 1, 1, '物料编码:' + that.form.FItemNumber)
+				let num = 100;
+				that.form.FItemName = '物料名称:' + that.form.FItemName
+				for (var i = 0; i < Math.ceil(that.form.FItemName.length / 31); i++) {
+					num = num + (i * 40)
+					command.setText(1, num, "TSS24.BF2", 1, 1, that.form.FItemName.slice(i * 31, i * 31 + 31));
 				};
+				num = num + 40
+				that.form.fprocessnote = '加工说明:' + that.form.fprocessnote
+				for (var i = 0; i < Math.ceil(that.form.fprocessnote.length / 31); i++) {
+					num = num + (i * 40)
+					command.setText(1, num, "TSS24.BF2", 1, 1, that.form.fprocessnote.slice(i * 31, i * 31 + 31));
+				};
+				command.setText(1, num + 40, "TSS24.BF2", 1, 1, '员工:' + item.userName)
+				command.setText(1, num + 80, "TSS24.BF2", 1, 1, '数量:' + item.FSendQty)
+				command.setText(1, num + 120, "TSS24.BF2", 1, 1, '工序名称:' + that.form.FAlternateName)
 				command.setPagePrint();
 				that.isLabelSend = true;
 				that.prepareSend(command.getData())

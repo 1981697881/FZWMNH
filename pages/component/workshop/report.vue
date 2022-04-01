@@ -21,7 +21,7 @@
 				<view class="search-form round">
 					<text class="cuIcon-search"></text>
 					<input :adjust-position="false" type="text" :value="keyword" @input="inputChange"
-						placeholder="单据号/产品编码/产品名称/产品型号" confirm-type="search"></input>
+						placeholder="单据号/产品编码/产品名称/产品型号/操作工" confirm-type="search"></input>
 				</view>
 				<view class="action">
 					<button class="cu-btn bg-green shadow-blur round" @tap="$manyCk(search)">搜索</button>
@@ -32,8 +32,8 @@
 			<view v-for="(item,index) in cuIconList" :key="index">
 				<view class="cu-list menu-avatar">
 					<view class="cu-item" style="width: 100%;margin-top: 2px;padding:15rpx 0 15rpx 0;height: auto;">
-						<view style="clear: both;width: 100%;" @tap="$manyCk(showList(index, item))" class="grid text-left col-2" data-target="Modal"
-							data-number="item.number">
+						<view style="clear: both;width: 100%;" @tap="$manyCk(showList(index, item))"
+							class="grid text-left col-2" data-target="Modal" data-number="item.number">
 							<view class="text-grey">{{index+1}}</view>
 							<!-- <view class="text-grey">
 								<checkbox class='round blue' @click="chooseBox(item)"></checkbox>
@@ -49,6 +49,9 @@
 							<view class="text-grey">工序代码:{{item.FAlternateNumber}}</view>
 							<view class="text-grey">工序名称:{{item.FAlternateName}}</view>
 							<view class="text-grey">派工量:{{item.FWBSentNum}}</view>
+							<view class="text-grey">汇报数量:{{item.FRepQty}}</view>
+							<view class="text-grey">未汇报数量:{{item.FWBSentNum-item.FRepQty}}</view>
+							<view class="text-grey">操作工:{{item.FWorkerName}}</view>
 							<view class="text-grey">汇报状态:{{item.FReportStatus}}</view>
 						</view>
 					</view>
@@ -85,6 +88,7 @@
 				},
 				isShow: true,
 				isClick: false,
+				isScan: false,
 				start: '',
 				end: '',
 				keyword: '',
@@ -98,23 +102,31 @@
 			uni.$off('scancodedate');
 		},
 		onShow: function(option) {
+			_self = this;
+			_self.secondFocus = false; // 每次都要初始化 focus 属性
+			setTimeout(() => {
+					_self.secondFocus = true; // this.secondFocus 是第二个文本框的 focus 属性。
+				},
+				1000);
+			uni.$on('scancodedate', function(data) {
+				// _this 这里面的方法用这个 _this.code(data.code)
+				let resData = data.code;
+				_self.keyword = resData
+				_self.isScan = true
+				_self.getNewsList();
+			});
+
 			this.isClick = false
 			uni.$on("handleBack", res => {
 				this.start = res.startDate
 				this.end = res.endDate
+				_self.isScan = false
 				this.getNewsList()
 				// 清除监听
 				uni.$off('handleBack')
 			})
 		},
 		onLoad: function(option) {
-			_self = this;
-			uni.$on('scancodedate', function(data) {
-				// _this 这里面的方法用这个 _this.code(data.code)
-				let resData = data.code;
-				_self.keyword = resData
-				_self.getNewsList();
-			});
 			if (JSON.stringify(option) != "{}") {
 				this.start = option.startDate
 				this.end = option.endDate
@@ -200,18 +212,26 @@
 			// 产品列表数据
 			getNewsList: function() {
 				//第一次回去数据
-				_self.loadingType = 0;
 				uni.showNavigationBarLoading();
 				const me = this;
+				me.loadingType = 0;
 				const obj = {
 					pageSize: 50,
 					pageNum: 1,
 				}
 				basic
-					.getOrderList(this.qFilter()).then(res => {
+					.getOrderList(me.qFilter()).then(res => {
 						if (res.success) {
-							console.log(res);
-							_self.cuIconList = res.data.list;
+							me.cuIconList = res.data.list;
+							if (isScan) {
+								if (res.data.list.length > 0) {
+									uni.navigateTo({
+										url: '../workshop/reportDetails?cutList=' + encodeURIComponent(JSON
+												.stringify(res.data.list[0])) + '&startDate=' + me
+											.start + '&endDate=' + me.end
+									});
+								}
+							}
 							uni.hideNavigationBarLoading();
 							uni.stopPullDownRefresh(); //得到数据后停止下拉刷新
 						}
@@ -233,7 +253,8 @@
 			showList(index, item) {
 				let array = []
 				uni.navigateTo({
-					url: '../workshop/reportDetails?cutList=' + encodeURIComponent(JSON.stringify(item)) +'&startDate=' + this.start + '&endDate=' + this.end
+					url: '../workshop/reportDetails?cutList=' + encodeURIComponent(JSON.stringify(item)) +
+						'&startDate=' + this.start + '&endDate=' + this.end
 				});
 				/* let list = this.cuIconList
 				if (list.length > 0) {
@@ -262,19 +283,19 @@
 				}
 				basic
 					.getOrderList(this.qFilter()).then(res => {
-					if (res.success) {
-						let data = res.data.list
-						data.forEach((item, index) => {
-							item.checked = false
-						})
-						me.cuIconList = data
-					}
-				}).catch(err => {
-					uni.showToast({
-						icon: 'none',
-						title: res.msg,
-					});
-				})
+						if (res.success) {
+							let data = res.data.list
+							data.forEach((item, index) => {
+								item.checked = false
+							})
+							me.cuIconList = data
+						}
+					}).catch(err => {
+						uni.showToast({
+							icon: 'none',
+							title: res.msg,
+						});
+					})
 			},
 			// 查询前后三天日期
 			getDay(date, day) {

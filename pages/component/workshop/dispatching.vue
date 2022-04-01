@@ -21,7 +21,7 @@
 				<view class="search-form round">
 					<text class="cuIcon-search"></text>
 					<input :adjust-position="false" type="text" :value="keyword" @input="inputChange"
-						placeholder="单据号/产品编码/产品名称/产品型号" confirm-type="search"></input>
+						placeholder="单据号/产品编码/产品名称/产品型号/班组" confirm-type="search"></input>
 				</view>
 				<view class="action">
 					<button class="cu-btn bg-green shadow-blur round" @tap="$manyCk(search)">搜索</button>
@@ -37,17 +37,21 @@
 							<view class="text-grey">{{index+1}}</view>
 							<view class="text-grey">派工状态:{{item.FDispatchStatus}}</view>
 							<view class="text-grey" style="width: 100%;">计划单据号:{{item.FBillNo}}</view>
-							<view class="text-grey" style="width: 100%;">日期:{{item.FDate}}</view>
+							<view class="text-grey">日期:{{item.FDate}}</view>
 							<view class="text-grey">任务单号:{{item.FProduceTaskNo}}</view>
-							<view class="text-grey">生产数量:{{item.FWBSentNum}}</view>
+							<view class="text-grey">生产数量:{{item.FProduceNumber}}</view>
+							<view class="text-grey">计划数量:{{item.FProcedurePlanNumber}}</view>
+							<view class="text-grey">已派工数量:{{item.FWBSentNum}}</view>
+							<view class="text-grey">未派工数量:{{item.FProcedurePlanNumber-item.FWBSentNum}}</view>
 							<view class="text-grey" style="width: 100%;">产品编码:{{item.FItemNumber}}</view>
 							<view class="text-grey" style="width: 100%;">产品名称:{{item.FItemName}}</view> 
-							<view class="text-grey">规格型号:{{item.FModel}}</view>
-							<view class="text-grey">工序序号:{{item.FOrderNo}}</view>
+							<!-- <view class="text-grey">规格型号:{{item.FModel}}</view>
+							<view class="text-grey">工序序号:{{item.FOrderNo}}</view> -->
 							<view class="text-grey">工序代码:{{item.FAlternateNumber}}</view>
 							<view class="text-grey">工序名称:{{item.FAlternateName}}</view>
-							<view class="text-grey">计划开工日期:{{item.FPlanStartDate}}</view>
-							<view class="text-grey">计划完工日期:{{item.FPlanFinishedDate}}</view>
+							<view class="text-grey" style="width: 100%;">班组:{{item.FTeamName}}</view>
+							<!-- <view class="text-grey">计划开工日期:{{item.FPlanStartDate}}</view>
+							<view class="text-grey">计划完工日期:{{item.FPlanFinishedDate}}</view> -->
 						</view>
 					</view>
 				</view>
@@ -90,6 +94,13 @@
 			uni.$off('scancodedate');
 		},
 		onShow: function(option) {
+			_self = this;
+			uni.$on('scancodedate', function(data) {
+				// _this 这里面的方法用这个 _this.code(data.code)
+				let resData = data.code;
+				_self.keyword = resData
+				_self.getNewsList();
+			});
 			uni.$on("handleBack", res => {
 				this.start = res.startDate
 				this.end = res.endDate
@@ -99,13 +110,7 @@
 			})
 		},
 		onLoad: function(option) {
-			_self = this;
-			uni.$on('scancodedate', function(data) {
-				// _this 这里面的方法用这个 _this.code(data.code)
-				let resData = data.code;
-				_self.keyword = resData
-				_self.getNewsList();
-			});
+			
 			if (JSON.stringify(option) != "{}") {
 				this.start = option.startDate
 				this.end = option.endDate
@@ -191,7 +196,7 @@
 			// 产品列表数据
 			getNewsList: function() {
 				//第一次回去数据
-				_self.loadingType = 0;
+				this.loadingType = 0;
 				uni.showNavigationBarLoading();
 				const me = this;
 				const obj = {

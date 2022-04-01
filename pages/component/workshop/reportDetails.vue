@@ -86,13 +86,14 @@
 							<view class="text-grey">工序序号:{{ item.FOrderNo }}</view>
 							<view class="text-grey">工序代码:{{ item.FAlternateNumber }}</view>
 							<view class="text-grey">工序名称:{{ item.FAlternateName }}</view>
-							<view class="text-grey">派工数量:{{ item.FWBSentNum }}</view>
 							<view class="text-grey">汇报状态:{{ item.FReportStatus }}</view>
-							<view class="text-grey" style="width: 100%;">生产数量:{{ item.FAuxQty }}</view>
+							<view class="text-grey">派工数量:{{ item.FWBSentNum }}</view>
+							<view class="text-grey">已汇报数量:{{ item.FRepQty }}</view>
+							<view class="text-grey">未汇报数量:{{ item.FWBSentNum }}</view>
 							<view>
 								<view style="float: left;line-height: 70upx;">开工时间:</view>
 								<ruiDatePicker fields="day" class='ruidata' start="2010-00-00" end="2030-12-30"
-									@change="bindChange1($event,item)"></ruiDatePicker>
+									:value="item.FDate.substring(0, 10)" @change="bindChange1($event,item)"></ruiDatePicker>
 							</view>
 							<view>
 								<view style="float: left;line-height: 70upx;">完工时间:</view>
@@ -102,7 +103,7 @@
 							<view>
 								<view style="float: left;line-height: 70upx;">实作数量:</view>
 								<input name="input" type="digit" @input="checkBlur1($event,item)"
-									style="border-bottom: 1px solid;" v-model="item.FProcessQty" />
+									style="border-bottom: 1px solid;" :focus="firstFocus" v-model="item.FProcessQty" />
 							</view>
 							<view>
 								<view style="float: left;line-height: 70upx;">合格数量:</view>
@@ -176,6 +177,7 @@
 				horizontal: 'right',
 				vertical: 'bottom',
 				popMenu: false,
+				firstFocus: true,
 				direction: 'horizontal',
 				pattern: {
 					color: '#7A7E83',
@@ -193,6 +195,13 @@
 			let list = JSON.parse(option.cutList);
 			if (JSON.stringify(option) != '{}') {
 				this.isOrder = true;
+				if(Number(list.FWBSentNum)- Number(list.FRepQty) > 0){
+					list.FProcessQty = Number(list.FWBSentNum)- Number(list.FRepQty)
+				}
+				list.FUnRepQty = list.FWBSentNum-list.FRepQty
+				list.FProcessQty = list.FUnRepQty
+				list.FOKQty = list.FUnRepQty
+				list.FFailQty = list.FProcessQty - list.FOKQty
 				this.cuIList = [list];
 				me.startDate = option.startDate;
 				me.endDate = option.endDate;
@@ -252,36 +261,42 @@
 			},
 			checkBlur1(event, item) {
 				let me = this
-				if (event.target.value > item['FSendQty']) {
+				if (event.target.value > item['FWBSentNum']) {
 					me.$set(item, 'FProcessQty', 0);
-					me.$forceUpdate();
+					me.$set(item, 'FOKQty', 0);
 					return uni.showToast({
 						icon: 'none',
-						title: '实作数量不能大于派工数量'
+						title: '实作数量不能大于未汇报数量'
 					});
 				}
+				me.$set(item, 'FOKQty', event.target.value);
+				me.$set(item, 'FFailQty', item.FProcessQty - item.FOKQty );
 			},
 			checkBlur2(event, item) {
 				let me = this
-				if (event.target.value > item['FProcessQty']) {
+				/* if (event.target.value > item['FProcessQty']) {
 					me.$set(item, 'FOKQty', 0);
 					me.$forceUpdate();
 					return uni.showToast({
 						icon: 'none',
-						title: '合格数量不能大于生产数量'
+						title: '合格数量不能大于实作数量'
 					});
-				}
+				} */
+				me.$set(item, 'FFailQty', item.FProcessQty - event.target.value);
+				me.$forceUpdate();
 			},
 			checkBlur3(event, item) {
 				let me = this
-				if (event.target.value > item['FProcessQty']) {
+				/* if (event.target.value > item['FProcessQty']) {
 					me.$set(item, 'FFailQty', 0);
 					me.$forceUpdate();
 					return uni.showToast({
 						icon: 'none',
-						title: '不合格数量不能大于生产数量'
+						title: '不合格数量不能大于实作数量'
 					});
-				}
+				} */
+				me.$set(item, 'FOKQty', item.FProcessQty - event.target.value);
+				me.$forceUpdate();
 			},
 			cityClick(item) {
 				this.$set(this.popupForm, 'userName', item.FName);
