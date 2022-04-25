@@ -75,6 +75,7 @@
 <script>
 	import ruiDatePicker from '@/components/rattenking-dtpicker/rattenking-dtpicker.vue';
 	import workshop from '@/api/workshop';
+	import service from '@/service.js';
 	import basic from '@/api/basic';
 	var _self,
 		page = 1;
@@ -255,6 +256,8 @@
 						}
 					})
 					.catch(err => {
+						uni.hideNavigationBarLoading();
+						uni.stopPullDownRefresh(); 
 						uni.showToast({
 							icon: 'none',
 							title: err.msg
@@ -293,6 +296,7 @@
 								}
 								alterData.fbillno = item.FBillNo;
 								alterData.ftrantype = 1002588;
+								alterData.fbiller = service.getUsers()[0].account
 								alterData.foper = 'M';
 								alterData.repEntry = [{
 									fbillno: item.FBillNo,
@@ -309,6 +313,7 @@
 											auditData.ftrantype = 1002588
 											auditData.foper = "C"
 											auditData.finterid = 0
+											auditData.fbiller = service.getUsers()[0].account
 											workshop
 												.productWorkInsert(auditData)
 												.then(reso => {

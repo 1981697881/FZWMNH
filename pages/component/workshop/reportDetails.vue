@@ -396,6 +396,7 @@
 							portData.fworkenddate = list[0].FWorkEndDate;
 							portData.fitemnumber = list[0].FItemNumber;
 							portData.forderno = list[0].FOrderNo;
+							portData.fbiller = service.getUsers()[0].account
 							portData.fwbnumber = list[0].FAlternateNumber;
 							portData.repEntry = array;
 							if (array.length > 0) {

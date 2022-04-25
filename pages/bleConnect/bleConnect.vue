@@ -424,7 +424,7 @@
 				command.setSize(80, 60)
 				command.setGap(0)
 				command.setCls()
-				command.setQR(420, 300, "L", 6, "A", that.form.fbillno)
+				command.setQR(420, 300, "L", 6, "A", item.fbillno)
 				/* command.setBarCode(180, 350, "39", 96, 1, 2, 2, that.form.fbillno) */
 				command.setText(1, 20, "TSS24.BF2", 1, 1, '生产任务单:'+that.form.FProduceTaskNo)
 				command.setText(1, 60, "TSS24.BF2", 1, 1, '物料编码:'+that.form.FItemNumber)

@@ -37,7 +37,8 @@
 			<view class="cu-bar bg-white solid-bottom flex-wrap" style="height: auto;">
 				<view class="action">
 					<text>产品编码:{{form.FItemNumber}}</text>
-				</view><view class="action">
+				</view>
+				<view class="action">
 					<text>班组:{{form.FTeamName}}</text>
 				</view>
 
@@ -61,7 +62,8 @@
 			<view class="cu-bar bg-white solid-bottom" style="height: 60upx;">
 				<view class="action">
 					<view class="title">加工说明:</view>
-					<input name="input" @input='sumRemark' style="font-size: 13px;text-align: left;" v-model="form.fprocessnote" />
+					<input name="input" @input='sumRemark' style="font-size: 13px;text-align: left;"
+						v-model="form.fprocessnote" />
 				</view>
 			</view>
 		</view>
@@ -256,7 +258,7 @@
 				me.startDate = obj.startDate
 				me.endDate = obj.endDate
 				me.form.fprocessnote = me.form.FRemark
-				me.form.FWBNuSentNum = me.form.FProcedurePlanNumber-me.form.FWBSentNum
+				me.form.FWBNuSentNum = me.form.FProcedurePlanNumber - me.form.FWBSentNum
 			}
 		},
 		onUnload() {
@@ -291,7 +293,7 @@
 								headHeight = data.height
 							}).exec();
 							setTimeout(function() {
-								me.pageHeight = res.windowHeight - infoHeight - headHeight -30
+								me.pageHeight = res.windowHeight - infoHeight - headHeight - 30
 							}, 1000);
 						}
 					});
@@ -395,7 +397,7 @@
 							FClassName: me.shiftList[0].FName,
 							FDeptID: '',
 						})
-						
+
 					}
 				}).catch(err => {
 					uni.showToast({
@@ -406,7 +408,7 @@
 				basic.getEmpList({}).then(res => {
 					if (res.success) {
 						me.empList = res.data
-						
+
 					}
 				}).catch(err => {
 					uni.showToast({
@@ -417,139 +419,147 @@
 				me.loadModal = false
 				me.isClick = false
 			},
-			saveData() {
+			async saveData() {
 				this.isClick = true
 				let result = []
-				let portData = {};
 				let list = this.cuIList
 				let me = this
-				let array = []
-				basic
-					.getBillNo({
-						TranType: 1002534
-					})
-					.then(reso => {
-						if (reso.success) {
-							for (let i in list) {
-								let obj = {}
-								if (list[i].userId == null || typeof list[i].userId == '') {
-									result.push(list[i].index);
-								}
-								if (list[i].FClassNumber == null || typeof list[i].FClassNumber == '') {
-									result.push(list[i].index);
-								}
-								if (list[i].FSendQty == null || typeof list[i].FSendQty == '') {
-									result.push(list[i].index);
-								}
+				for (let i = 0;i <list.length;i++) {
+					if (list[i].userId == null ||  list[i].userId == '') {
+						result.push(list[i].index);
+					}
+					if (list[i].FClassNumber == null ||  list[i].FClassNumber == '') {
+						result.push(list[i].index);
+					}
+					if (list[i].FSendQty == null ||  list[i].FSendQty == '') {
+						result.push(list[i].index);
+					}
+				}
+				if (list.length <= 0) {
+					me.isClick = false
+					return uni.showToast({
+						icon: 'none',
+						title: '无派工数据',
+					});
+				}
+				if (result.length > 0) {
+					me.isClick = false
+					return uni.showToast({
+						icon: 'none',
+						title: '派工数，操作人，班次输入有误，请检查',
+					});
+				}
+				var number = 0;
+				for (let i = 0;i <list.length;i++) {
+					let portData = {};
+					let array = []
+					let obj = {}
+					 await basic
+						.getBillNo({ 
+							TranType: 1002534
+						})
+						.then(reso => {
+							if (reso.success) {
 								obj.fopernumber = list[i].userId
 								obj.fclassnumber = list[i].FClassNumber
 								obj.fsendqty = list[i].FSendQty
-								obj.fbillno = reso.data
 								obj.fentryid = 0
 								obj.workdate = me.form.workDate
 								obj.fprocessnote = me.form.fprocessnote
 								obj.productworkdetailid = me.form.productWorkDetailId
+								obj.fbillno = reso.data
+								list[i].fbillno = reso.data
 								array.push(obj)
-							}
-							if (result.length > 0) {
-								me.isClick = false
-								return uni.showToast({
-									icon: 'none',
-									title: '派工数，操作人，班次输入有误，请检查',
-								});
-							}
-							if (array.length <= 0) {
-								me.isClick = false
-								return uni.showToast({
-									icon: 'none',
-									title: '无派工数据',
-								});
-							}
-							portData.ftrantype = "1002534"
-							portData.foper = "N"
-							portData.finterid = 0
-							portData.fdate = me.form.FDate
-							portData.fbillno = reso.data
-							portData.fplanbillno = me.form.FBillNo
-							portData.ficmobillno = me.form.FProduceTaskNo
-							portData.fplanentryid = me.form.FEntryID
-							portData.fplanstartdate = me.form.FPlanStartDate
-							portData.fplanenddate = me.form.FPlanEndDate
-							portData.fitemnumber = me.form.FItemNumber
-							portData.forderno = me.form.FOrderNo
-							portData.fwbnumber = me.form.FAlternateNumber
-							portData.finterid = 0
-							portData.repEntry = array
-							workshop.productWorkInsert(portData).then(res => {
-								if (res.success) {
-									uni.showToast({
-										icon: 'success',
-										title: res.msg,
-									});
-									me.form.bNum = 0
-									if (me.isOrder) {
-										uni.showModal({
-											title: "提示",
-											content: "是否立即打印",
-											showCancel: true,
-											cancelText: '取消',
-											confirmText: '确定',
-											success: res => {
-												console.log(res.confirm)
-												if (res.confirm) {
-													let {
-														BLEInformation
-													} = me.Bluetooth;
-													me.form.fdate = me.form.FDate
-													me.form.fbillno = reso.data
-													me.form.entry = me.cuIList
-													if (BLEInformation.deviceId == "") {
-														// 用户点击确定
-														setTimeout(function() {
-															uni.redirectTo({
-																url: '/pages/bleConnect/bleConnect?obj=' +
-																	encodeURIComponent(
-																		JSON
-																		.stringify(
-																			me.form
-																			))
-															});
-														}, 1000)
-													} else {
-														me.bindViewTap();
+								portData.ftrantype = "1002534"
+								portData.foper = "N"
+								portData.fdate = this.getDay('', 0).date
+								portData.fbillno = reso.data
+								portData.fplanbillno = me.form.FBillNo
+								portData.ficmobillno = me.form.FProduceTaskNo
+								portData.fplanentryid = me.form.FEntryID
+								portData.fplanstartdate = me.form.FPlanStartDate
+								portData.fplanenddate = me.form.FPlanEndDate
+								portData.fitemnumber = me.form.FItemNumber
+								portData.forderno = me.form.FOrderNo
+								portData.fwbnumber = me.form.FAlternateNumber
+								portData.fbiller = service.getUsers()[0].account
+								portData.finterid = 0
+								portData.repEntry = array;
+								workshop.productWorkInsert(portData).then(res => {
+									if (res.success) {
+										number++;
+										uni.showToast({
+											icon: 'success',
+											title: res.msg,
+										});
+										me.form.bNum = 0
+										if (me.isOrder) {
+											if (number == list.length) {
+												uni.showModal({
+													title: "提示",
+													content: "是否立即打印",
+													showCancel: true,
+													cancelText: '取消',
+													confirmText: '确定',
+													success: res => {
+														if (res.confirm) {
+															let {
+																BLEInformation
+															} = me.Bluetooth;
+															me.form.fdate = this.getDay('', 0).date
+															me.form.entry = me.cuIList
+															if (BLEInformation.deviceId == "") {
+																// 用户点击确定
+																setTimeout(function() {
+																	uni.redirectTo({
+																		url: '/pages/bleConnect/bleConnect?obj=' +
+																			encodeURIComponent(
+																				JSON
+																				.stringify(
+																					me
+																					.form
+																				))
+																	});
+																}, 1000)
+															} else {
+																me.bindViewTap();
+															}
+														} else {
+															setTimeout(function() {
+																uni.$emit('handleBack', {
+																	startDate: me
+																		.startDate,
+																	endDate: me
+																		.endDate
+																});
+																uni.navigateBack({
+																	url: '../workshop/dispatching'
+																});
+															}, 1000)
+															// 否则点击了取消  
+														}
 													}
-												} else {
-													setTimeout(function() {
-														uni.$emit('handleBack', {
-															startDate: me.startDate,
-															endDate: me.endDate
-														});
-														uni.navigateBack({
-															url: '../workshop/dispatching'
-														});
-													}, 1000)
-													// 否则点击了取消  
-												}
+												})
 											}
-										})
+										}
 									}
-								}
-							}).catch(err => {
-								uni.showToast({
-									icon: 'none',
-									title: err.message,
-								});
-								this.isClick = false
-							})
-
-						}
-					})
-					.catch(err => {
-						uni.showToast({
-							icon: 'none',
-							title: err.msg
+								}).catch(err => {
+									uni.showToast({
+										icon: 'none',
+										title: err.message,
+									});
+									this.isClick = false
+								})
+							}
+						})
+						.catch(err => {
+							uni.showToast({
+								icon: 'none',
+								title: err.msg
+							});
 						});
-					});
+				}
+
 			},
 			showModal(index, item) {
 				this.modalName = 'Modal'
@@ -560,6 +570,7 @@
 			},
 			del(index, item) {
 				this.cuIList.splice(index, 1)
+				let list = this.cuIList
 				var count = 0
 				for (var i = 0; i < list.length; i++) {
 					count += Number(list[i].dispatchNum)
@@ -602,8 +613,8 @@
 				this.form.processID = val
 			},
 			PickerChange(e, item) {
-				this.$set(item,'FClassName', this.shiftList[e.detail.value].FName);
-				this.$set(item,'FClassNumber', this.shiftList[e.detail.value].FNumber);
+				this.$set(item, 'FClassName', this.shiftList[e.detail.value].FName);
+				this.$set(item, 'FClassNumber', this.shiftList[e.detail.value].FNumber);
 			},
 			/* PickerChange(e, item) {
 				this.$set(item, 'userName', this.empList[e.detail.value].FName);
@@ -805,7 +816,7 @@
 				command.setSize(80, 60)
 				command.setGap(0)
 				command.setCls()
-				command.setQR(420, 300, "L", 6, "A", that.form.fbillno)
+				command.setQR(420, 300, "L", 6, "A", item.fbillno)
 				/* command.setBarCode(180, 350, "39", 96, 1, 2, 2, that.form.fbillno) */
 				command.setText(1, 20, "TSS24.BF2", 1, 1, '生产任务单:' + that.form.FProduceTaskNo)
 				command.setText(1, 60, "TSS24.BF2", 1, 1, '物料编码:' + that.form.FItemNumber)

@@ -223,7 +223,7 @@
 					.getOrderList(me.qFilter()).then(res => {
 						if (res.success) {
 							me.cuIconList = res.data.list;
-							if (isScan) {
+							if (me.isScan) {
 								if (res.data.list.length > 0) {
 									uni.navigateTo({
 										url: '../workshop/reportDetails?cutList=' + encodeURIComponent(JSON
@@ -237,6 +237,8 @@
 						}
 					})
 					.catch(err => {
+						uni.hideNavigationBarLoading();
+						uni.stopPullDownRefresh(); 
 						uni.showToast({
 							icon: 'none',
 							title: err.msg

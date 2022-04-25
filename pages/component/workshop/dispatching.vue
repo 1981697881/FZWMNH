@@ -213,6 +213,8 @@
 						}
 					})
 					.catch(err => {
+						uni.hideNavigationBarLoading();
+						uni.stopPullDownRefresh(); 
 						uni.showToast({
 							icon: 'none',
 							title: err.msg
