@@ -273,7 +273,7 @@
 							case 0:
 								let alterData = {};
 								let auditData = {};
-								if (item.FAuxQtyFinish == null || typeof item.FAuxQtyFinish == '') {
+								if (item.FAuxQtyFinish == null || item.FAuxQtyFinish == 0 || typeof item.FAuxQtyFinish == '') {
 									that.isClick = false
 									return uni.showToast({
 										icon: 'none',
@@ -288,6 +288,13 @@
 									});
 								}
 								if (item.FAuxQtyDefective == null || typeof item.FAuxQtyDefective == '') {
+									that.isClick = false
+									return uni.showToast({
+										icon: 'none',
+										title: '数量输入有误，请检查',
+									});
+								}
+								if ((Number(item.FAuxQtyDefective) + Number(item.FAuxQtyPass))== 0) {
 									that.isClick = false
 									return uni.showToast({
 										icon: 'none',

@@ -361,13 +361,16 @@
 						if (reso.success) {
 							for (let i in list) {
 								let obj = {};
-								if (list[i].FProcessQty == null || typeof list[i].FProcessQty == '') {
+								if (list[i].FProcessQty == null || typeof list[i].FProcessQty == '' || list[i].FProcessQty == 0) {
 									result.push(list[i].index);
 								}
 								if (list[i].FOKQty == null || typeof list[i].FOKQty == '') {
 									result.push(list[i].index);
 								}
 								if (list[i].FFailQty == null || typeof list[i].FFailQty == '') {
+									result.push(list[i].index);
+								}
+								if((Number(list[i].FOKQty) + Number(list[i].FFailQty))== 0){
 									result.push(list[i].index);
 								}
 								obj.fbillno = reso.data;

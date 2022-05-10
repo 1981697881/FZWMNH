@@ -138,11 +138,20 @@ export default {
 	        },
 			data: params
 	    });
-	},//获取更新
+	},
+	//获取更新
 	getAndroidVersion(params) {
 	    return Request().post('/api/basic/getAndroidVersion', {
 	        header: {
 				contentType: 'application/json',
+	        },
+			data: params
+	    });
+	},//打印次数
+	barcodeScanCount(params) {
+	    return Request().post('/api/basic/barcodeScanCount', {
+	        header: {
+				accept: '*/*'
 	        },
 			data: params
 	    });

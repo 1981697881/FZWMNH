@@ -101,16 +101,16 @@
 				_self.keyword = resData
 				_self.getNewsList();
 			});
-			uni.$on("handleBack", res => {
+			/* uni.$on("handleBack", res => {
 				this.start = res.startDate
 				this.end = res.endDate
 				this.getNewsList()
 				// 清除监听
 				uni.$off('handleBack')
-			})
+			}) */
+			this.getNewsList()
 		},
 		onLoad: function(option) {
-			
 			if (JSON.stringify(option) != "{}") {
 				this.start = option.startDate
 				this.end = option.endDate

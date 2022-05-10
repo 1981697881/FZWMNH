@@ -231,6 +231,7 @@
 				endDate: null,
 				sendContent: "",
 				looptime: 0,
+				printNumber: 0,
 				currentTime: 1,
 				lastData: 0,
 				oneTimeData: 0,
@@ -424,14 +425,14 @@
 				let result = []
 				let list = this.cuIList
 				let me = this
-				for (let i = 0;i <list.length;i++) {
-					if (list[i].userId == null ||  list[i].userId == '') {
+				for (let i = 0; i < list.length; i++) {
+					if (list[i].userId == null || list[i].userId == '') {
 						result.push(list[i].index);
 					}
-					if (list[i].FClassNumber == null ||  list[i].FClassNumber == '') {
+					if (list[i].FClassNumber == null || list[i].FClassNumber == '') {
 						result.push(list[i].index);
 					}
-					if (list[i].FSendQty == null ||  list[i].FSendQty == '') {
+					if (list[i].FSendQty == null || list[i].FSendQty == '') {
 						result.push(list[i].index);
 					}
 				}
@@ -449,13 +450,27 @@
 						title: '派工数，操作人，班次输入有误，请检查',
 					});
 				}
+				var count = 0;
+				for (let i = 0; i < list.length; i++) {
+					count += Number(list[i].FSendQty);
+				}
+				console.log(count)
+				console.log(me.form.FWBNuSentNum)
+				console.log(count > me.form.FWBNuSentNum)
+				if (count > me.form.FWBNuSentNum) {
+					me.isClick = false
+					return uni.showToast({
+						icon: 'none',
+						title: '派工量不能大于未派工数量',
+					});
+				}
 				var number = 0;
-				for (let i = 0;i <list.length;i++) {
+				for (let i = 0; i < list.length; i++) {
 					let portData = {};
 					let array = []
 					let obj = {}
-					 await basic
-						.getBillNo({ 
+					await basic
+						.getBillNo({
 							TranType: 1002534
 						})
 						.then(reso => {
@@ -472,7 +487,7 @@
 								array.push(obj)
 								portData.ftrantype = "1002534"
 								portData.foper = "N"
-								portData.fdate = this.getDay('', 0).date
+								portData.fdate = me.getDay('', 0).date
 								portData.fbillno = reso.data
 								portData.fplanbillno = me.form.FBillNo
 								portData.ficmobillno = me.form.FProduceTaskNo
@@ -485,71 +500,79 @@
 								portData.fbiller = service.getUsers()[0].account
 								portData.finterid = 0
 								portData.repEntry = array;
-								workshop.productWorkInsert(portData).then(res => {
-									if (res.success) {
-										number++;
-										uni.showToast({
-											icon: 'success',
-											title: res.msg,
-										});
-										me.form.bNum = 0
-										if (me.isOrder) {
-											if (number == list.length) {
-												uni.showModal({
-													title: "提示",
-													content: "是否立即打印",
-													showCancel: true,
-													cancelText: '取消',
-													confirmText: '确定',
-													success: res => {
-														if (res.confirm) {
-															let {
-																BLEInformation
-															} = me.Bluetooth;
-															me.form.fdate = this.getDay('', 0).date
-															me.form.entry = me.cuIList
-															if (BLEInformation.deviceId == "") {
-																// 用户点击确定
+								setTimeout(function() {
+									workshop.productWorkInsert(portData).then(res => {
+										if (res.success) {
+											number++;
+											uni.showToast({
+												icon: 'success',
+												title: res.msg,
+											});
+											me.form.bNum = 0
+											if (me.isOrder) {
+												if (number == list.length) {
+													uni.showModal({
+														title: "提示",
+														content: "是否立即打印",
+														showCancel: true,
+														cancelText: '取消',
+														confirmText: '确定',
+														success: res => {
+															if (res.confirm) {
+																let {
+																	BLEInformation
+																} = me.Bluetooth;
+																me.form.fdate = me.getDay('', 0).date
+																me.form.entry = me
+																	.cuIList
+																if (BLEInformation
+																	.deviceId == "") {
+																	// 用户点击确定
+																	setTimeout(
+																		function() {
+																			uni.redirectTo({
+																				url: '/pages/bleConnect/bleConnect?obj=' +
+																					encodeURIComponent(
+																						JSON
+																						.stringify(
+																							me
+																							.form
+																						)
+																						)
+																			});
+																		}, 1000)
+																} else {
+																	me.printNumber = 0;
+																	me.bindViewTap();
+																}
+															} else {
 																setTimeout(function() {
-																	uni.redirectTo({
-																		url: '/pages/bleConnect/bleConnect?obj=' +
-																			encodeURIComponent(
-																				JSON
-																				.stringify(
-																					me
-																					.form
-																				))
+																	uni.$emit(
+																		'handleBack', {
+																			startDate: me
+																				.startDate,
+																			endDate: me
+																				.endDate
+																		});
+																	uni.navigateBack({
+																		url: '../workshop/dispatching'
 																	});
 																}, 1000)
-															} else {
-																me.bindViewTap();
+																// 否则点击了取消  
 															}
-														} else {
-															setTimeout(function() {
-																uni.$emit('handleBack', {
-																	startDate: me
-																		.startDate,
-																	endDate: me
-																		.endDate
-																});
-																uni.navigateBack({
-																	url: '../workshop/dispatching'
-																});
-															}, 1000)
-															// 否则点击了取消  
 														}
-													}
-												})
+													})
+												}
 											}
 										}
-									}
-								}).catch(err => {
-									uni.showToast({
-										icon: 'none',
-										title: err.message,
-									});
-									this.isClick = false
-								})
+									}).catch(err => {
+										uni.showToast({
+											icon: 'none',
+											title: err.message,
+										});
+										this.isClick = false
+									})
+								}, i == 0 ? 0 : 1500)
 							}
 						})
 						.catch(err => {
@@ -682,6 +705,15 @@
 						console.log('createBLEConnection error:', e)
 						that.errorCodeTip(e.errCode);
 						uni.hideLoading()
+						uni.redirectTo({
+							url: '/pages/bleConnect/bleConnect?obj=' +
+								encodeURIComponent(
+									JSON
+									.stringify(
+										that
+										.form
+									))
+						});
 					}
 				})
 			},
@@ -704,10 +736,75 @@
 						fail: function(e) {
 							that.errorCodeTip(e.code);
 							console.log('getBLEDeviceServices fail:', e)
+							uni.redirectTo({
+								url: '/pages/bleConnect/bleConnect?obj=' +
+									encodeURIComponent(
+										JSON
+										.stringify(
+											that
+											.form
+										))
+							});
 						}
 					})
 					clearTimeout(t);
 				}, 1500)
+			},
+			//错误码提示
+			errorCodeTip(code) {
+				if (code == 0) {
+					//正常
+				} else if (code == 10000) {
+					uni.showToast({
+						title: '未初始化蓝牙适配器',
+						icon: 'none'
+					})
+				} else if (code == 10001) {
+					uni.showToast({
+						title: '当前蓝牙适配器不可用',
+						icon: 'none'
+					})
+				} else if (code == 10002) {
+					uni.showToast({
+						title: '没有找到指定设备',
+						icon: 'none'
+					})
+				} else if (code == 10003) {
+					uni.showToast({
+						title: '连接失败',
+						icon: 'none'
+					})
+				} else if (code == 10004) {
+					uni.showToast({
+						title: '没有找到指定服务',
+						icon: 'none'
+					})
+				} else if (code == 10005) {
+					uni.showToast({
+						title: '没有找到指定特征值',
+						icon: 'none'
+					})
+				} else if (code == 10006) {
+					uni.showToast({
+						title: '当前连接已断开',
+						icon: 'none'
+					})
+				} else if (code == 10007) {
+					uni.showToast({
+						title: '当前特征值不支持此操作',
+						icon: 'none'
+					})
+				} else if (code == 10008) {
+					uni.showToast({
+						title: '其余所有系统上报的异常',
+						icon: 'none'
+					})
+				} else if (code == 10009) {
+					uni.showToast({
+						title: 'Android 系统特有，系统版本低于 4.3 不支持 BLE',
+						icon: 'none'
+					})
+				}
 			},
 			getCharacteristics() {
 				var that = this
@@ -791,16 +888,13 @@
 							}, 3000 * t); // 还是每秒执行一次，不是累加的
 						})(i, '') // 
 					}
+
 				}
-				setTimeout(function() {
-					uni.$emit('handleBack', {
-						startDate: me.startDate,
-						endDate: me.endDate
-					});
-					uni.navigateBack({
-						url: '../workshop/dispatching'
-					});
-				}, 1000)
+				/* uni.$emit('handleBack', {
+					startDate: that.startDate,
+					endDate: that.endDate
+				}); */
+
 				/* uni.navigateTo({
 					url: '/pages/sendCommand/sendCommand',
 				}) */
@@ -821,26 +915,28 @@
 				command.setText(1, 20, "TSS24.BF2", 1, 1, '生产任务单:' + that.form.FProduceTaskNo)
 				command.setText(1, 60, "TSS24.BF2", 1, 1, '物料编码:' + that.form.FItemNumber)
 				let num = 100;
-				that.form.FItemName = '物料名称:' + that.form.FItemName
-				for (var i = 0; i < Math.ceil(that.form.FItemName.length / 31); i++) {
+				var fItemName = that.form.FItemName;
+				fItemName = '物料名称:' + fItemName
+				for (var i = 0; i < Math.ceil(fItemName.length / 31); i++) {
 					num = num + (i * 40)
-					command.setText(1, num, "TSS24.BF2", 1, 1, that.form.FItemName.slice(i * 31, i * 31 + 31));
+					command.setText(1, num, "TSS24.BF2", 1, 1, fItemName.slice(i * 31, i * 31 + 31));
 				};
 				num = num + 40
-				that.form.fprocessnote = '加工说明:' + that.form.fprocessnote
-				for (var i = 0; i < Math.ceil(that.form.fprocessnote.length / 31); i++) {
+				var fprocessnote = that.form.fprocessnote;
+				fprocessnote = '加工说明:' + fprocessnote
+				for (var i = 0; i < Math.ceil(fprocessnote.length / 31); i++) {
 					num = num + (i * 40)
-					command.setText(1, num, "TSS24.BF2", 1, 1, that.form.fprocessnote.slice(i * 31, i * 31 + 31));
+					command.setText(1, num, "TSS24.BF2", 1, 1, fprocessnote.slice(i * 31, i * 31 + 31));
 				};
 				command.setText(1, num + 40, "TSS24.BF2", 1, 1, '员工:' + item.userName)
 				command.setText(1, num + 80, "TSS24.BF2", 1, 1, '数量:' + item.FSendQty)
 				command.setText(1, num + 120, "TSS24.BF2", 1, 1, '工序名称:' + that.form.FAlternateName)
 				command.setPagePrint();
 				that.isLabelSend = true;
-				that.prepareSend(command.getData())
+				that.prepareSend(command.getData(), item)
 			},
 			//准备发送，根据每次发送字节数来处理分包数量
-			prepareSend(buff) {
+			prepareSend(buff, item) {
 				console.log(buff);
 				let that = this
 				let time = that.oneTimeData
@@ -850,10 +946,10 @@
 				this.looptime = looptime + 1;
 				this.lastData = lastData;
 				this.currentTime = 1;
-				that.Send(buff)
+				that.Send(buff, item)
 			},
 			//分包发送
-			Send(buff) {
+			Send(buff, item) {
 				let that = this
 				let {
 					currentTime,
@@ -898,11 +994,28 @@
 						currentTime++
 						if (currentTime <= loopTime) {
 							that.currentTime = currentTime;
-							that.Send(buff)
+							that.Send(buff, item)
 						} else {
-							uni.showToast({
-								title: '已打印第' + currentPrint + '张',
-							})
+							basic.barcodeScanCount({
+								barcode: item.fbillno
+							}).then(reso => {
+								console.log(reso)
+								if (reso.success) {
+									that.printNumber++;
+									uni.showToast({
+										title: '已打印第' + currentPrint + '张',
+									})
+									console.log(that.printNumber + "," + that.cuIList.length)
+									if (that.printNumber == that.cuIList.length) {
+										uni.navigateBack();
+									}
+								}
+							}).catch(err => {
+								uni.showToast({
+									icon: 'none',
+									title: err.msg,
+								});
+							});
 							if (currentPrint == printNum) {
 								that.looptime = 0;
 								that.lastData = 0;
@@ -914,7 +1027,7 @@
 								currentPrint++;
 								that.currentPrint = currentPrint;
 								that.currentTime = 1;
-								that.Send(buff)
+								that.Send(buff, item)
 							}
 						}
 					}

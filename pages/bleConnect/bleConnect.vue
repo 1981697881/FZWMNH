@@ -23,6 +23,8 @@
 	import {
 		mapState
 	} from 'vuex';
+	import basic from '@/api/basic';
+	import service from '@/service.js';
 	var tsc = require("../../util/ble/tsc.js");
 	var esc = require("../../util/ble/esc.js");
 	var encode = require("../../util/ble/encoding.js");
@@ -429,23 +431,25 @@
 				command.setText(1, 20, "TSS24.BF2", 1, 1, '生产任务单:'+that.form.FProduceTaskNo)
 				command.setText(1, 60, "TSS24.BF2", 1, 1, '物料编码:'+that.form.FItemNumber)
 				let num = 100;
-				that.form.FItemName = '物料名称:'+that.form.FItemName
-				for (var i = 0; i < Math.ceil(that.form.FItemName.length / 31); i++) {
+				var fItemName = that.form.FItemName;
+				fItemName = '物料名称:' + fItemName
+				for (var i = 0; i < Math.ceil(fItemName.length / 31); i++) {
 					num = num + (i * 40)
-					command.setText(1, num, "TSS24.BF2", 1, 1, that.form.FItemName.slice(i * 31, i * 31 + 31));
+					command.setText(1, num, "TSS24.BF2", 1, 1, fItemName.slice(i * 31, i * 31 + 31));
 				};
 				num = num+40
-				that.form.fprocessnote = '加工说明:'+that.form.fprocessnote
-				for (var i = 0; i < Math.ceil(that.form.fprocessnote.length / 31); i++) {
+				var fprocessnote = that.form.fprocessnote;
+				fprocessnote = '加工说明:' + fprocessnote
+				for (var i = 0; i < Math.ceil(fprocessnote.length / 31); i++) {
 					num = num + (i * 40)
-					command.setText(1, num, "TSS24.BF2", 1, 1, that.form.fprocessnote.slice(i * 31, i * 31 + 31));
+					command.setText(1, num, "TSS24.BF2", 1, 1, fprocessnote.slice(i * 31, i * 31 + 31));
 				};
 				command.setText(1, num+40, "TSS24.BF2", 1, 1, '员工:'+item.userName)
 				command.setText(1, num+80, "TSS24.BF2", 1, 1, '数量:'+item.FSendQty)
 				command.setText(1, num+120, "TSS24.BF2", 1, 1, '工序名称:'+that.form.FAlternateName)
 				command.setPagePrint()
 				that.isLabelSend = true;
-				that.prepareSend(command.getData())
+				that.prepareSend(command.getData(),item)
 				/* uni.canvasGetImageData({
 				  canvasId: 'edit_area_canvas',
 				  x: 0,
@@ -463,7 +467,7 @@
 				}) */
 			},
 			//准备发送，根据每次发送字节数来处理分包数量
-			prepareSend(buff) {
+			prepareSend(buff,item) {
 				console.log(buff);
 				let that = this
 				let time = that.oneTimeData
@@ -472,10 +476,10 @@
 				this.looptime = looptime + 1;
 				this.lastData = lastData;
 				this.currentTime = 1;
-				that.Send(buff)
+				that.Send(buff,item)
 			},
 			//分包发送
-			Send(buff) {
+			Send(buff,item) {
 				let that = this
 				let {
 					currentTime,
@@ -517,13 +521,25 @@
 					},
 					complete: function() {
 						currentTime++
+						console.log(currentTime <= loopTime)
 						if (currentTime <= loopTime) {
 							that.currentTime = currentTime;
-							that.Send(buff)
+							that.Send(buff,item)
 						} else {
-							uni.showToast({
-								title: '已打印第' + currentPrint + '张',
-							})
+							console.log(item.fbillno)
+							basic.barcodeScanCount({barcode: item.fbillno}).then(reso => {
+								console.log(reso)
+								if (reso.success) {
+									uni.showToast({
+										title: '已打印第' + currentPrint + '张',
+									})
+								}
+							}).catch(err => {
+								uni.showToast({
+									icon: 'none',
+									title: err.msg,
+								});
+							});
 							if (currentPrint == printNum) {
 								that.looptime = 0;
 								that.lastData = 0;
@@ -535,7 +551,7 @@
 								currentPrint++;
 								that.currentPrint = currentPrint;
 								that.currentTime = 1;
-								that.Send(buff)
+								that.Send(buff,item)
 							}
 						}
 					}
