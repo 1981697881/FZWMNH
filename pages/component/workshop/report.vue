@@ -219,6 +219,7 @@
 					pageSize: 50,
 					pageNum: 1,
 				}
+				console.log(me.qFilter())
 				basic
 					.getOrderList(me.qFilter()).then(res => {
 						if (res.success) {

@@ -70,8 +70,9 @@
 			<view v-for="(item, index) in cuIList" :key="index">
 				<view class="cu-list menu-avatar">
 					<view class="cu-item" style="width: 100%;padding:15rpx 0 15rpx 0;height: auto;"
-						:class="modalName == 'move-box-' + index ? 'move-cur' : ''" @touchstart="ListTouchStart"
-						@touchmove="ListTouchMove" @touchend="ListTouchEnd" :data-target="'move-box-' + index">
+						:class="modalName == 'move-box-' + index ? 'move-cur' : ''" :data-target="'move-box-' + index">
+						<!-- @touchstart="ListTouchStart"
+						@touchmove="ListTouchMove" @touchend="ListTouchEnd" -->
 						<view style="clear: both;width: 100%;" class="grid  col-2">
 							<!-- <view style="width: 100%;">
 								<view class="text-grey">
@@ -89,21 +90,29 @@
 							<view class="text-grey">汇报状态:{{ item.FReportStatus }}</view>
 							<view class="text-grey">派工数量:{{ item.FWBSentNum }}</view>
 							<view class="text-grey">已汇报数量:{{ item.FRepQty }}</view>
-							<view class="text-grey">未汇报数量:{{ item.FWBSentNum }}</view>
+							<view class="text-grey">未汇报数量:{{ item.FWBSentNum - item.FRepQty }}</view>
 							<view>
 								<view style="float: left;line-height: 70upx;">开工时间:</view>
 								<ruiDatePicker fields="day" class='ruidata' start="2010-00-00" end="2030-12-30"
-									:value="item.FDate.substring(0, 10)" @change="bindChange1($event,item)"></ruiDatePicker>
+									:value="item.FDate.substring(0, 10)" @change="bindChange1($event,item)">
+								</ruiDatePicker>
 							</view>
 							<view>
 								<view style="float: left;line-height: 70upx;">完工时间:</view>
 								<ruiDatePicker fields="day" class='ruidata' start="2010-00-00" end="2030-12-30"
 									@change="bindChange2($event,item)"></ruiDatePicker>
 							</view>
+							<view style="line-height: 70upx;">
+								<button class="cu-btn sm round bg-green shadow" @tap="showModal(index, item)"
+									:disabled="isDis" data-target="Modal">
+									<text class="cuIcon-people">
+									</text>汇报人员:{{item.userName}}</button>
+							</view>
 							<view>
 								<view style="float: left;line-height: 70upx;">实作数量:</view>
 								<input name="input" type="digit" @input="checkBlur1($event,item)"
-									style="border-bottom: 1px solid;" :focus="firstFocus" v-model="item.FProcessQty" />
+									style="border-bottom: 1px solid;" v-model="item.FProcessQty" />
+								<!-- :focus="firstFocus" -->
 							</view>
 							<view>
 								<view style="float: left;line-height: 70upx;">合格数量:</view>
@@ -116,9 +125,9 @@
 									style="border-bottom: 1px solid;" v-model="item.FFailQty" />
 							</view>
 						</view>
-						<view class="move">
+						<!-- <view class="move">
 							<view class="bg-red" @tap="del(index, item)">删除</view>
-						</view>
+						</view> -->
 					</view>
 				</view>
 			</view>
@@ -156,6 +165,7 @@
 				isOrder: false,
 				loadModal: false,
 				onoff: true,
+				isDis: false,
 				isClick: false,
 				pickerVal: null,
 				gridCol: 3,
@@ -190,15 +200,34 @@
 				endDate: null
 			};
 		},
+		onHide() {
+			// 移除监听事件
+			uni.$off('scancodedate');
+		},
+		onShow: function(option) {
+			let that = this;
+			uni.$on('scancodedate', function(data) {
+				// _this 这里面的方法用这个 _this.code(data.code)
+				that.empList.forEach((item) => {
+					if (item.FNumber == data.code) {
+						that.$set(that.cuIList[0], 'userName', item.FName);
+						that.$set(that.cuIList[0], 'userId', item.FNumber);
+					}
+				})
+				/* 
+				that.$set(that.cuIList[0],'fopernumber',code[0])
+				that.$set(that.cuIList[0],'username',code[1]) */
+			});
+		},
 		onLoad: function(option) {
 			let me = this;
 			let list = JSON.parse(option.cutList);
 			if (JSON.stringify(option) != '{}') {
 				this.isOrder = true;
-				if(Number(list.FWBSentNum)- Number(list.FRepQty) > 0){
-					list.FProcessQty = Number(list.FWBSentNum)- Number(list.FRepQty)
+				if (Number(list.FWBSentNum) - Number(list.FRepQty) > 0) {
+					list.FProcessQty = Number(list.FWBSentNum) - Number(list.FRepQty)
 				}
-				list.FUnRepQty = list.FWBSentNum-list.FRepQty
+				list.FUnRepQty = list.FWBSentNum - list.FRepQty
 				list.FProcessQty = list.FUnRepQty
 				list.FOKQty = list.FUnRepQty
 				list.FFailQty = list.FProcessQty - list.FOKQty
@@ -261,7 +290,7 @@
 			},
 			checkBlur1(event, item) {
 				let me = this
-				if (event.target.value > item['FWBSentNum']) {
+				if (event.target.value > (item.FWBSentNum - item.FRepQty) + ((item.FWBSentNum - item.FRepQty)*0.1)) {
 					me.$set(item, 'FProcessQty', 0);
 					me.$set(item, 'FOKQty', 0);
 					return uni.showToast({
@@ -270,7 +299,7 @@
 					});
 				}
 				me.$set(item, 'FOKQty', event.target.value);
-				me.$set(item, 'FFailQty', item.FProcessQty - item.FOKQty );
+				me.$set(item, 'FFailQty', item.FProcessQty - item.FOKQty);
 			},
 			checkBlur2(event, item) {
 				let me = this
@@ -353,102 +382,118 @@
 				let list = this.cuIList;
 				let array = [];
 				let me = this;
-				basic
-					.getBillNo({
-						TranType: 1002588
-					})
-					.then(reso => {
-						if (reso.success) {
-							for (let i in list) {
-								let obj = {};
-								if (list[i].FProcessQty == null || typeof list[i].FProcessQty == '' || list[i].FProcessQty == 0) {
-									result.push(list[i].index);
+				if (list[0].FWBSentNum > 0) {
+					basic
+						.getBillNo({
+							TranType: 1002588
+						})
+						.then(reso => {
+							if (reso.success) {
+								for (let i in list) {
+									let obj = {};
+									if (list[i].FProcessQty == null || typeof list[i].FProcessQty == '' || list[i]
+										.FProcessQty == 0) {
+										result.push(list[i].index);
+									}
+									if (list[i].FOKQty == null || typeof list[i].FOKQty == '') {
+										result.push(list[i].index);
+									}
+									if (list[i].FFailQty == null || typeof list[i].FFailQty == '') {
+										result.push(list[i].index);
+									}
+									if ((Number(list[i].FOKQty) + Number(list[i].FFailQty)) == 0) {
+										result.push(list[i].index);
+									}
+									obj.fbillno = reso.data;
+									obj.fentryid = 0;
+									obj.fworkorderno = list[i].FBillNo;
+									obj.fworkorderentryid = list[i].FEntryID;
+									obj.fprocessqty = list[i].FProcessQty;
+									obj.fokqty = list[i].FOKQty;
+									obj.ffailqty = list[i].FFailQty;
+									obj.fopernumber = list[i].userId;
+									array.push(obj);
 								}
-								if (list[i].FOKQty == null || typeof list[i].FOKQty == '') {
-									result.push(list[i].index);
+								if (result.length > 0) {
+									me.isClick = false
+									return uni.showToast({
+										icon: 'none',
+										title: '数量输入有误，请检查',
+									});
 								}
-								if (list[i].FFailQty == null || typeof list[i].FFailQty == '') {
-									result.push(list[i].index);
-								}
-								if((Number(list[i].FOKQty) + Number(list[i].FFailQty))== 0){
-									result.push(list[i].index);
-								}
-								obj.fbillno = reso.data;
-								obj.fentryid = 0;
-								obj.fworkorderno = list[i].FBillNo;
-								obj.fworkorderentryid = list[i].FEntryID;
-								obj.fprocessqty = list[i].FProcessQty;
-								obj.fokqty = list[i].FOKQty;
-								obj.ffailqty = list[i].FFailQty;
-								array.push(obj);
-							}
-							if (result.length > 0) {
-								me.isClick = false
-								return uni.showToast({
-									icon: 'none',
-									title: '数量输入有误，请检查',
-								});
-							}
-							portData.ftrantype = 1002588;
-							portData.foper = 'N';
-							portData.finterid = 0;
-							portData.fdate = me.form.fdate;
-							portData.fbillno = reso.data;
-							portData.fworkorderno = list[0].FBillNo;
-							portData.fworkstartdate = list[0].FWorkStartDate;
-							portData.fworkenddate = list[0].FWorkEndDate;
-							portData.fitemnumber = list[0].FItemNumber;
-							portData.forderno = list[0].FOrderNo;
-							portData.fbiller = service.getUsers()[0].account
-							portData.fwbnumber = list[0].FAlternateNumber;
-							portData.repEntry = array;
-							if (array.length > 0) {
-								workshop
-									.productWorkInsert(portData)
-									.then(res => {
-										if (res.success) {
-											me.cuIList = [];
-											uni.showToast({
-												icon: 'success',
-												title: res.msg
+								if ((list[0].FWBSentNum - list[0].FRepQty) > 0) {
+									portData.ftrantype = 1002588;
+									portData.foper = 'N';
+									portData.finterid = 0;
+									portData.fdate = me.form.fdate;
+									portData.fbillno = reso.data;
+									portData.fworkorderno = list[0].FBillNo;
+									portData.fworkstartdate = list[0].FWorkStartDate;
+									portData.fworkenddate = list[0].FWorkEndDate;
+									portData.fitemnumber = list[0].FItemNumber;
+									portData.forderno = list[0].FOrderNo;
+									// portData.fopernumber = list[0].userId;
+									portData.fbiller = service.getUsers()[0].account
+									portData.fwbnumber = list[0].FAlternateNumber;
+									portData.repEntry = array;
+									if (array.length > 0) {
+										workshop
+											.productWorkInsert(portData)
+											.then(res => {
+												if (res.success) {
+													me.cuIList = [];
+													uni.showToast({
+														icon: 'success',
+														title: res.msg
+													});
+													me.initMain();
+													if (me.isOrder) {
+														setTimeout(function() {
+															uni.$emit('handleBack', {
+																startDate: me.startDate,
+																endDate: me.endDate
+															});
+															uni.navigateBack({
+																url: '../workshop/report'
+															});
+														}, 1000);
+													}
+												}
+											})
+											.catch(err => {
+												uni.showToast({
+													icon: 'none',
+													title: err.message
+												});
+												me.isClick = false;
 											});
-											me.initMain();
-											if (me.isOrder) {
-												setTimeout(function() {
-													uni.$emit('handleBack', {
-														startDate: me.startDate,
-														endDate: me.endDate
-													});
-													uni.navigateBack({
-														url: '../workshop/report'
-													});
-												}, 1000);
-											}
-										}
-									})
-									.catch(err => {
+									} else {
 										uni.showToast({
 											icon: 'none',
-											title: err.message
+											title: '请填写汇报'
 										});
 										me.isClick = false;
+									}
+								} else {
+									return uni.showToast({
+										icon: 'none',
+										title: '可汇报数为零',
 									});
-							} else {
-								uni.showToast({
-									icon: 'none',
-									title: '请填写汇报'
-								});
-								me.isClick = false;
+								}
 							}
-						}
-					})
-					.catch(err => {
-						uni.showToast({
-							icon: 'none',
-							title: err.msg
+						})
+						.catch(err => {
+							uni.showToast({
+								icon: 'none',
+								title: err.msg
+							});
 						});
+				} else {
+					return uni.showToast({
+						icon: 'none',
+						title: '可汇报数量为0',
 					});
-
+				}
 			},
 			del(index, item) {
 				this.cuIList.splice(index, 1);

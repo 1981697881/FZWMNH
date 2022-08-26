@@ -426,9 +426,9 @@
 				let list = this.cuIList
 				let me = this
 				for (let i = 0; i < list.length; i++) {
-					if (list[i].userId == null || list[i].userId == '') {
+					/* if (list[i].userId == null || list[i].userId == '') {
 						result.push(list[i].index);
-					}
+					} */
 					if (list[i].FClassNumber == null || list[i].FClassNumber == '') {
 						result.push(list[i].index);
 					}
@@ -447,7 +447,7 @@
 					me.isClick = false
 					return uni.showToast({
 						icon: 'none',
-						title: '派工数，操作人，班次输入有误，请检查',
+						title: '派工数，班次输入有误，请检查',/* 操作人 */
 					});
 				}
 				var count = 0;
@@ -500,79 +500,9 @@
 								portData.fbiller = service.getUsers()[0].account
 								portData.finterid = 0
 								portData.repEntry = array;
-								setTimeout(function() {
-									workshop.productWorkInsert(portData).then(res => {
-										if (res.success) {
-											number++;
-											uni.showToast({
-												icon: 'success',
-												title: res.msg,
-											});
-											me.form.bNum = 0
-											if (me.isOrder) {
-												if (number == list.length) {
-													uni.showModal({
-														title: "提示",
-														content: "是否立即打印",
-														showCancel: true,
-														cancelText: '取消',
-														confirmText: '确定',
-														success: res => {
-															if (res.confirm) {
-																let {
-																	BLEInformation
-																} = me.Bluetooth;
-																me.form.fdate = me.getDay('', 0).date
-																me.form.entry = me
-																	.cuIList
-																if (BLEInformation
-																	.deviceId == "") {
-																	// 用户点击确定
-																	setTimeout(
-																		function() {
-																			uni.redirectTo({
-																				url: '/pages/bleConnect/bleConnect?obj=' +
-																					encodeURIComponent(
-																						JSON
-																						.stringify(
-																							me
-																							.form
-																						)
-																						)
-																			});
-																		}, 1000)
-																} else {
-																	me.printNumber = 0;
-																	me.bindViewTap();
-																}
-															} else {
-																setTimeout(function() {
-																	uni.$emit(
-																		'handleBack', {
-																			startDate: me
-																				.startDate,
-																			endDate: me
-																				.endDate
-																		});
-																	uni.navigateBack({
-																		url: '../workshop/dispatching'
-																	});
-																}, 1000)
-																// 否则点击了取消  
-															}
-														}
-													})
-												}
-											}
-										}
-									}).catch(err => {
-										uni.showToast({
-											icon: 'none',
-											title: err.message,
-										});
-										this.isClick = false
-									})
-								}, i == 0 ? 0 : 1500)
+								/* setTimeout(function() { */
+
+								/* }, i == 0 ? 0 : 1500) */
 							}
 						})
 						.catch(err => {
@@ -581,6 +511,77 @@
 								title: err.msg
 							});
 						});
+					await workshop.productWorkInsert(portData).then(res => {
+						if (res.success) {
+							number++;
+							uni.showToast({
+								icon: 'success',
+								title: res.msg,
+							});
+							me.form.bNum = 0
+							if (me.isOrder) {
+								if (number == list.length) {
+									uni.showModal({
+										title: "提示",
+										content: "是否立即打印",
+										showCancel: true,
+										cancelText: '取消',
+										confirmText: '确定',
+										success: res => {
+											if (res.confirm) {
+												me.printNumber = 0;
+												let {
+													BLEInformation
+												} = me.Bluetooth;
+												me.form.fdate = me.getDay('', 0).date
+												me.form.entry = me
+													.cuIList
+												if (BLEInformation
+													.deviceId == "") {
+													// 用户点击确定
+													setTimeout(
+														function() {
+															uni.redirectTo({
+																url: '/pages/bleConnect/bleConnect?obj=' +
+																	encodeURIComponent(
+																		JSON
+																		.stringify(
+																			me
+																			.form
+																		)
+																	)
+															});
+														}, 1000)
+												} else {
+													me.bindViewTap();
+												}
+											} else {
+												setTimeout(function() {
+													uni.$emit(
+														'handleBack', {
+															startDate: me
+																.startDate,
+															endDate: me
+																.endDate
+														});
+													uni.navigateBack({
+														url: '../workshop/dispatching'
+													});
+												}, 1000)
+												// 否则点击了取消  
+											}
+										}
+									})
+								}
+							}
+						}
+					}).catch(err => {
+						uni.showToast({
+							icon: 'none',
+							title: err.message,
+						});
+						this.isClick = false
+					})
 				}
 
 			},
@@ -931,6 +932,7 @@
 				command.setText(1, num + 40, "TSS24.BF2", 1, 1, '员工:' + item.userName)
 				command.setText(1, num + 80, "TSS24.BF2", 1, 1, '数量:' + item.FSendQty)
 				command.setText(1, num + 120, "TSS24.BF2", 1, 1, '工序名称:' + that.form.FAlternateName)
+				command.setText(1, num + 160, "TSS24.BF2", 1, 1, '派工日期:' + that.form.fdate)
 				command.setPagePrint();
 				that.isLabelSend = true;
 				that.prepareSend(command.getData(), item)
@@ -978,7 +980,6 @@
 				let {
 					BLEInformation
 				} = that.Bluetooth;
-
 				plus.bluetooth.writeBLECharacteristicValue({
 					deviceId: BLEInformation.deviceId,
 					serviceId: BLEInformation.writeServiceId,

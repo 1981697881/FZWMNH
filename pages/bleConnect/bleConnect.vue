@@ -447,6 +447,7 @@
 				command.setText(1, num+40, "TSS24.BF2", 1, 1, '员工:'+item.userName)
 				command.setText(1, num+80, "TSS24.BF2", 1, 1, '数量:'+item.FSendQty)
 				command.setText(1, num+120, "TSS24.BF2", 1, 1, '工序名称:'+that.form.FAlternateName)
+				command.setText(1, num + 160, "TSS24.BF2", 1, 1, '派工日期:' + that.form.fdate)
 				command.setPagePrint()
 				that.isLabelSend = true;
 				that.prepareSend(command.getData(),item)
@@ -526,9 +527,7 @@
 							that.currentTime = currentTime;
 							that.Send(buff,item)
 						} else {
-							console.log(item.fbillno)
 							basic.barcodeScanCount({barcode: item.fbillno}).then(reso => {
-								console.log(reso)
 								if (reso.success) {
 									uni.showToast({
 										title: '已打印第' + currentPrint + '张',
